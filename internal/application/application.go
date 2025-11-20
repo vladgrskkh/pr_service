@@ -2,11 +2,14 @@ package application
 
 import (
 	"context"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/config"
 	"github.com/vladgrskkh/pr_service/internal/handlers/healthcheck"
 	"github.com/vladgrskkh/pr_service/internal/service"
@@ -45,6 +48,7 @@ type Application struct {
 	Cfg            *config.Config
 	Logger         *slog.Logger
 	PullReqService *service.PullReqService
+	DB             *pgxpool.Pool
 }
 
 func NewAppllication(cfgFile string) *Application {
@@ -58,11 +62,43 @@ func NewAppllication(cfgFile string) *Application {
 
 	pullReqService := service.NewPullReqService()
 
+	dbpool, err := openDB(cfg)
+	if err != nil {
+		logger.Log(context.Background(), LevelFatal, err.Error())
+		os.Exit(1)
+	}
+
+	defer dbpool.Close()
+
+	logger.Info("db connection pool established")
+
 	return &Application{
 		Cfg:            cfg,
 		Logger:         logger,
 		PullReqService: pullReqService,
+		DB:             dbpool,
 	}
+}
+
+func openDB(cfg *config.Config) (*pgxpool.Pool, error) {
+	config, err := pgxpool.ParseConfig(cfg.DB.DSN)
+	if err != nil {
+		return nil, err
+	}
+
+	duration, err := time.ParseDuration(cfg.DB.MaxIdleTime)
+	if err != nil {
+		return nil, err
+	}
+
+	config.MaxConns = cfg.DB.MaxOpenConns
+	config.MaxConnIdleTime = duration
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		log.Fatalf("Unable to connect to database: %v\n", err)
+	}
+	return pool, nil
 }
 
 func (app *Application) Routes() http.Handler {
