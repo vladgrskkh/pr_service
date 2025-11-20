@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Port int    `toml:"port"`
-	Env  string `toml:"env"`
+	Port    int    `toml:"port"`
+	Env     string `toml:"env"`
+	Version string `toml:"version"`
 }
 
 func NewConfig(cfgFile string) (*Config, error) {

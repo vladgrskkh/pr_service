@@ -67,7 +67,7 @@ func NewAppllication(cfgFile string) *Application {
 
 func (app *Application) Routes() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/healthcheck", healthcheck.New())
+	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version))
 
 	return r
 }
