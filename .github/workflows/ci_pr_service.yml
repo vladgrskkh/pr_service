@@ -1,0 +1,64 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+  pull_request:
+    branches:
+      - main
+      - 'feat/**'
+
+jobs:
+  build-test:
+    name: 🧪 Build, Migrate, and Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pr
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mrs"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_DSN: postgres://postgres:postgres@postgres:5432/pr?sslmode=disable
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.3"
+
+      - name: Install dependencies
+        run: |
+          go mod download
+
+      - name: Run database migrations
+        uses: docker://migrate/migrate
+        with:
+          args: >
+            -path=/github/workspace/migrations
+            -database=${{ env.DB_DSN }}
+            up
+        
+      - name: Run linters
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.5.0
+
+      - name: Run tests
+        run: |
+          go test ./... -v
