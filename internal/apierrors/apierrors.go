@@ -15,7 +15,7 @@ func logError(logger *slog.Logger, r *http.Request, err error) {
 		slog.String("trace", string(debug.Stack())))
 }
 
-// errorResponse writes a JSON response with a provided status code and message
+// ErrorResponse writes a JSON response with a provided status code and message
 // to the http.ResponseWriter.
 func ErrorResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, status int, message interface{}) {
 	data := json.Envelope{
