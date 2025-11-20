@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,10 +12,15 @@ import (
 )
 
 func main() {
-	app := application.NewAppllication()
+	var cfgFile string
+	flag.StringVar(&cfgFile, "config", "config/config.toml", "path to a config file")
+
+	flag.Parse()
+
+	app := application.NewAppllication(cfgFile)
 
 	srv := &http.Server{
-		Addr:         ":8080",
+		Addr:         fmt.Sprintf(":%d", app.Cfg.Port),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,

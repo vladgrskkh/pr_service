@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -46,10 +47,14 @@ type Application struct {
 	PullReqService *service.PullReqService
 }
 
-func NewAppllication() *Application {
-	cfg := config.NewConfig()
-
+func NewAppllication(cfgFile string) *Application {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, loggerOpts))
+
+	cfg, err := config.NewConfig(cfgFile)
+	if err != nil {
+		logger.Log(context.Background(), LevelFatal, err.Error())
+		os.Exit(1)
+	}
 
 	pullReqService := service.NewPullReqService()
 
