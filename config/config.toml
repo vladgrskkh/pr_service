@@ -1,2 +1,3 @@
 port = 8080
 env = "development"
+version = "0.0.1"
