@@ -22,6 +22,7 @@ func (r *PullRequestRepo) Insert(pr *domain.PR) error {
 	query := `
 		INSERT INTO pull_requests (id, name, author_id, status, assigned_reviewers)
 		VALUES ($1, $2, $3, $4, $5)
+		RETURNING created_at, merged_at
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -29,7 +30,7 @@ func (r *PullRequestRepo) Insert(pr *domain.PR) error {
 
 	args := []interface{}{pr.ID, pr.Name, pr.AuthorID, pr.Status, pr.AssignedReviewers}
 
-	_, err := r.DB.Exec(ctx, query, args...)
+	err := r.DB.QueryRow(ctx, query, args...).Scan(&pr.CreatedAt, &pr.MergedAt)
 	if err != nil {
 		return err
 	}
@@ -37,25 +38,39 @@ func (r *PullRequestRepo) Insert(pr *domain.PR) error {
 	return nil
 }
 
-func (r *PullRequestRepo) Update(pr *domain.PR) error {
+func (r *PullRequestRepo) UpdateReviewers(pr *domain.PR) error {
 	query := `
 		UPDATE pull_requests
-		SET status = $1, assigned_reviewers = $2
-		WHERE id = $3
+		SET assigned_reviewers = $1
+		WHERE id = $2
+		RETURNING created_at, merged_at
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	commandTag, err := r.DB.Exec(ctx, query, pr.Status, pr.AssignedReviewers, pr.ID)
+	err := r.DB.QueryRow(ctx, query, pr.AssignedReviewers, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
 	if err != nil {
 		return err
 	}
 
-	rowsAffected := commandTag.RowsAffected()
+	return nil
+}
 
-	if rowsAffected == 0 {
-		return ErrRecordNotFound
+func (r *PullRequestRepo) UpdateStatus(pr *domain.PR) error {
+	query := `
+		UPDATE pull_requests
+		SET status = $1
+		WHERE id = $2
+		RETURNING created_at, merged_at
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := r.DB.QueryRow(ctx, query, pr.Status, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
+	if err != nil {
+		return err
 	}
 
 	return nil
