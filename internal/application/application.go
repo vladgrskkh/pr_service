@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/config"
 	"github.com/vladgrskkh/pr_service/internal/handlers/healthcheck"
-	"github.com/vladgrskkh/pr_service/internal/handlers/healthcheck/users"
+	"github.com/vladgrskkh/pr_service/internal/handlers/users"
 	"github.com/vladgrskkh/pr_service/internal/repository"
 	"github.com/vladgrskkh/pr_service/internal/service"
 )
