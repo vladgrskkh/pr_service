@@ -1,0 +1,7 @@
+port = 8080
+env = "production"
+version = "0.0.1"
+
+[db]
+max_open_conns = 25
+max_idle_time = "5m"

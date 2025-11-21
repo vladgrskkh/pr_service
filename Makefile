@@ -26,7 +26,7 @@ run/api:
 ## db/psql: connect to the database using psql
 .PHONY: db/psql
 db/psql:
-	psql ${DB_DSN}
+	psql ${DB_DSN_LOCAL}
 
 ## db/migrations/new name=$1: create a new database migration
 .PHONY: db/migrations/new
@@ -38,7 +38,22 @@ db/migrations/new:
 .PHONY: db/migrations/up
 db/migrations/up: confirm
 	@echo 'Running up migrations...'
-	migrate -path ./migrations -database ${DB_DSN} up
+	migrate -path ./migrations -database ${DB_DSN_LOCAL} up
+
+## run/docker/api: run the docker image
+.PHONY: run/docker/api
+run/docker/api:
+	docker run -p 8080:8080 --env_file .env pr-service:latest -config=config/config.toml
+
+## run/docker-compose/up: run the docker-compose(docker-compose.yml) stack in detached mode
+.PHONY: run/docker-compose/up
+run/docker-compose/up:
+	docker-compose up -d
+
+## stop/docker-compose/down: stop the docker-compose(docker-compose.yml) stack
+.PHONY: run/docker-compose/down
+run/docker-compose/down:
+	docker-compose down
 
 # =========================================================================================== #
 # QUALITY CONTROL
@@ -73,3 +88,17 @@ vendor:
 build/api:
 	@echo 'Building cmd/api...'
 	go build -ldflags='-s' -o=./bin/api ./cmd/api
+
+## build/docker: build the docker image
+.PHONY: build/docker
+build/docker:
+	@echo 'Building docker image...'
+	docker build --tag pr-service .
+
+## build-and-push/docker: build the docker image and push it to docker hub
+.PHONY: build-and-push/docker
+build-and-push/docker:
+	@echo 'Building docker image...'
+	docker build --tag vladgrskkh/pr-service .
+	@echo 'Pushing docker image...'
+	docker push vladgrskkh/pr-service:latest

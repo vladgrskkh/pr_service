@@ -60,5 +60,4 @@ func (r *TeamRepository) Get(name string) (*domain.Team, error) {
 	}
 
 	return &team, nil
-
 }

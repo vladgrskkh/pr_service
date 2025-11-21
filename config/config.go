@@ -36,7 +36,11 @@ func NewConfig(cfgFile string) (*Config, error) {
 		return nil, fmt.Errorf("error loading environment variables: %w", err)
 	}
 
-	cfg.DB.DSN = os.Getenv("DB_DSN")
+	if cfg.Env == "development" {
+		cfg.DB.DSN = os.Getenv("DB_DSN_LOCAL")
+	} else {
+		cfg.DB.DSN = os.Getenv("DB_DSN")
+	}
 
 	return &cfg, nil
 }

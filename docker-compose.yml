@@ -1,0 +1,44 @@
+services:
+  api:
+    image: vladgrskkh/pr-service:latest
+    env_file:
+      - .env
+    restart: always
+    ports: 
+      - "8080:8080"
+    volumes:
+      - ./.env:/app/.env
+    command: ["-config=config_docker-compose.toml"]
+    depends_on:
+      - db
+      - migrate
+
+  db:
+    image: postgres:18
+    env_file:
+      - .env_db 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prs_user -d prs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+  migrate:
+    image: migrate/migrate
+    env_file:
+      - .env
+    depends_on:
+        db:
+          condition: service_healthy
+    command: [
+      "-path", "/migrations",
+      "-database", "${DB_DSN}",
+      "up"
+    ]
+    volumes:
+      - ./migrations:/migrations
+
+volumes:
+  pgdata:

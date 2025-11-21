@@ -1,3 +1,4 @@
 .env
+.env_db
 .DS_STORE
 bin/
