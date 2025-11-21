@@ -45,3 +45,26 @@ func (s *PullReqService) GetReviewByUser(id int64) ([]*domain.PR, error) {
 
 	return prs, nil
 }
+
+func (s *PullReqService) CreateTeam(name string, members []*domain.User) (*domain.Team, error) {
+	team := &domain.Team{
+		Name:    name,
+		Members: members,
+	}
+
+	err := s.teamsRepo.Insert(team)
+	if err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
+func (s *PullReqService) GetTeam(name string) (*domain.Team, error) {
+	team, err := s.teamsRepo.Get(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}

@@ -18,7 +18,7 @@ type IsActiveSetter interface {
 	SetIsActiveUser(id int64, isActive bool) (*domain.User, error)
 }
 
-func NewSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http.HandlerFunc {
+func NewPostSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
 			UserID   int64 `json:"user_id"`

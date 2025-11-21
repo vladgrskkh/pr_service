@@ -113,7 +113,7 @@ func (app *Application) Routes() http.Handler {
 	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version))
 
 	r.Get("/users/{userID}/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))
-	r.Post("/users/setIsActive", users.NewSetIsActiveHandler(app.Logger, app.PullReqService))
+	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService))
 
 	return r
 }
