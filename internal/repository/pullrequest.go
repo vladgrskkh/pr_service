@@ -40,14 +40,14 @@ func (r *PullRequestRepo) Insert(pr *domain.PR) error {
 func (r *PullRequestRepo) Update(pr *domain.PR) error {
 	query := `
 		UPDATE pull_requests
-		SET status = $1
-		WHERE id = $2
+		SET status = $1, assigned_reviewers = $2
+		WHERE id = $3
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	commandTag, err := r.DB.Exec(ctx, query, pr.Status, pr.ID)
+	commandTag, err := r.DB.Exec(ctx, query, pr.Status, pr.AssignedReviewers, pr.ID)
 	if err != nil {
 		return err
 	}
