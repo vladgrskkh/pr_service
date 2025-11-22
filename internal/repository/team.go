@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
-	"time"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
@@ -15,25 +15,26 @@ var (
 )
 
 type TeamRepository struct {
-	DB *pgxpool.Pool
+	db     *pgxpool.Pool
+	getter *trmpgx.CtxGetter
 }
 
-func NewTeamRepository(db *pgxpool.Pool) *TeamRepository {
+func NewTeamRepository(db *pgxpool.Pool, c *trmpgx.CtxGetter) *TeamRepository {
 	return &TeamRepository{
-		DB: db,
+		db:     db,
+		getter: c,
 	}
 }
 
-func (r *TeamRepository) Insert(team *domain.Team) error {
+func (r *TeamRepository) Insert(ctx context.Context, team *domain.Team) error {
 	query := `
-		INSERT INTO teams (name, members)
-		VALUES ($1, $2)
+		INSERT INTO teams (name)
+		VALUES ($1)
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
-	_, err := r.DB.Exec(ctx, query, team.Name, team.Members)
+	_, err := conn.Exec(ctx, query, team.Name)
 	if err != nil {
 		switch {
 		case err.Error() == `ERROR: duplicate key value violates unique constraint "teams_name_key" (SQLSTATE 23505)`:
@@ -46,19 +47,18 @@ func (r *TeamRepository) Insert(team *domain.Team) error {
 	return nil
 }
 
-func (r *TeamRepository) Get(name string) (*domain.Team, error) {
+func (r *TeamRepository) Get(ctx context.Context, name string) (*domain.Team, error) {
 	query := `
-		SELECT id, name, members
+		SELECT name
 		FROM teams
 		WHERE name = $1
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
 	var team domain.Team
 
-	err := r.DB.QueryRow(ctx, query, name).Scan(&team.ID, &team.Name, &team.Members)
+	err := conn.QueryRow(ctx, query, name).Scan(&team.Name)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):

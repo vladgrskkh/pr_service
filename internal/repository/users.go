@@ -3,45 +3,44 @@ package repository
 import (
 	"context"
 	"errors"
-	"time"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 )
 
 var (
 	ErrRecordNotFound = errors.New("record not found")
+	ErrDuplicateUser  = errors.New("duplicate user")
 )
 
 type UsersRepo struct {
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
+	getter *trmpgx.CtxGetter
 }
 
-func NewUsersRepo(db *pgxpool.Pool) *UsersRepo {
+func NewUsersRepo(db *pgxpool.Pool, c *trmpgx.CtxGetter) *UsersRepo {
 	return &UsersRepo{
-		db: db,
+		db:     db,
+		getter: c,
 	}
 }
 
-func (r *UsersRepo) SetIsActive(id int64, isActive bool) (*domain.User, error) {
-	if id < 1 {
-		return nil, ErrRecordNotFound
-	}
-
+func (r *UsersRepo) SetIsActive(ctx context.Context, id string, isActive bool) (*domain.User, error) {
 	query := `
 		UPDATE users
 		SET is_active = $1
-		WHERE user_id = $2
-		RETURNING user_id, username, team_name, is_active
+		WHERE id = $2
+		RETURNING id, name, team_name, is_active
 	`
 
 	var user domain.User
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
-	err := r.db.QueryRow(ctx, query, id, isActive).Scan(&user.ID, &user.Name, &user.TeamName, &user.IsActive)
+	err := conn.QueryRow(ctx, query, id, isActive).Scan(&user.ID, &user.Name, &user.TeamName, &user.IsActive)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -52,4 +51,90 @@ func (r *UsersRepo) SetIsActive(id int64, isActive bool) (*domain.User, error) {
 	}
 
 	return &user, nil
+}
+
+func (r *UsersRepo) CreateUser(ctx context.Context, user *domain.User) error {
+	query := `
+		INSERT INTO users (id, name, team_name, is_active)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	args := []interface{}{user.ID, user.Name, user.TeamName, user.IsActive}
+	_, err := conn.Exec(ctx, query, args...)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				return ErrDuplicateUser
+			}
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (r *UsersRepo) Get(ctx context.Context, id string) (*domain.User, error) {
+	query := `
+		SELECT id, name, team_name, is_active
+		FROM users
+		WHERE id = $1
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	var user domain.User
+
+	args := []interface{}{&user.ID, &user.Name, &user.TeamName, &user.IsActive}
+	err := conn.QueryRow(ctx, query, id).Scan(args...)
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &user, nil
+}
+
+func (r *UsersRepo) GetAllForTeam(ctx context.Context, teamName string) ([]string, error) {
+	query := `
+		SELECT id
+		FROM users
+		WHERE team_name = $1
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	rows, err := conn.Query(ctx, query, teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var members []string
+
+	for rows.Next() {
+		var member string
+
+		err := rows.Scan(&member)
+		if err != nil {
+			return nil, err
+		}
+
+		members = append(members, member)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return members, nil
+
 }

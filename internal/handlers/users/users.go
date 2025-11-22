@@ -2,12 +2,9 @@ package users
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/vladgrskkh/pr_service/internal/apierrors"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 	"github.com/vladgrskkh/pr_service/internal/repository"
@@ -15,14 +12,14 @@ import (
 )
 
 type IsActiveSetter interface {
-	SetIsActiveUser(id int64, isActive bool) (*domain.User, error)
+	SetIsActiveUser(id string, isActive bool) (*domain.User, error)
 }
 
 func NewPostSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
-			UserID   int64 `json:"user_id"`
-			IsActive bool  `json:"is_active"`
+			UserID   string `json:"user_id"`
+			IsActive bool   `json:"is_active"`
 		}
 
 		err := json.Read(w, r, &input)
@@ -51,26 +48,20 @@ func NewPostSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http
 }
 
 type ReviewsGetter interface {
-	GetReviewByUser(id int64) ([]*domain.PR, error)
+	GetReviewByUser(id string) ([]*domain.PR, error)
 }
 
 func NewGetReviewsHandler(logger *slog.Logger, service ReviewsGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := chi.URLParam(r, "userID")
+		userID := r.URL.Query().Get("user_id")
 
-		id, err := strconv.ParseInt(userID, 10, 64)
-		if err != nil || id < 1 {
-			apierrors.BadRequestResponse(logger, w, r, fmt.Errorf("invalid id parameter"))
-			return
-		}
-
-		prs, err := service.GetReviewByUser(id)
+		prs, err := service.GetReviewByUser(userID)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 			return
 		}
 
-		err = json.Write(w, http.StatusOK, json.Envelope{"user_id": id, "pull_requests": prs}, nil)
+		err = json.Write(w, http.StatusOK, json.Envelope{"user_id": userID, "pull_requests": prs}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}

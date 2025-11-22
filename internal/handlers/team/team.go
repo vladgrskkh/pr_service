@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/vladgrskkh/pr_service/internal/apierrors"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 	"github.com/vladgrskkh/pr_service/internal/repository"
@@ -41,7 +40,7 @@ func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFu
 			return
 		}
 
-		err = json.Write(w, http.StatusCreated, json.Envelope{"team": team}, nil)
+		err = json.Write(w, http.StatusCreated, json.Envelope{"team": team.Name, "members": input.Members}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
@@ -49,15 +48,14 @@ func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFu
 }
 
 type TeamGetter interface {
-	GetTeam(name string) (*domain.Team, error)
+	GetTeam(name string) (*domain.Team, []string, error)
 }
 
 func NewGetTeamHandler(logger *slog.Logger, service TeamGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// will be changed
-		teamName := chi.URLParam(r, "teamName")
+		teamName := r.URL.Query().Get("team_name")
 
-		team, err := service.GetTeam(teamName)
+		team, members, err := service.GetTeam(teamName)
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRecordNotFound):
@@ -69,7 +67,7 @@ func NewGetTeamHandler(logger *slog.Logger, service TeamGetter) http.HandlerFunc
 			return
 		}
 
-		err = json.Write(w, http.StatusOK, json.Envelope{"team": team}, nil)
+		err = json.Write(w, http.StatusOK, json.Envelope{"team_name": team.Name, "members": members}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}

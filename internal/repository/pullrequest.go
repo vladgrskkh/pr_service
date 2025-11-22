@@ -3,11 +3,12 @@ package repository
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
+
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 )
 
 var (
@@ -15,28 +16,29 @@ var (
 )
 
 type PullRequestRepo struct {
-	DB *pgxpool.Pool
+	db     *pgxpool.Pool
+	getter *trmpgx.CtxGetter
 }
 
-func NewPullRequestRepo(db *pgxpool.Pool) *PullRequestRepo {
+func NewPullRequestRepo(db *pgxpool.Pool, c *trmpgx.CtxGetter) *PullRequestRepo {
 	return &PullRequestRepo{
-		DB: db,
+		db:     db,
+		getter: c,
 	}
 }
 
-func (r *PullRequestRepo) Insert(pr *domain.PR) error {
+func (r *PullRequestRepo) Insert(ctx context.Context, pr *domain.PR) error {
 	query := `
 		INSERT INTO pull_requests (id, name, author_id, status, assigned_reviewers)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING created_at, merged_at
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
 	args := []interface{}{pr.ID, pr.Name, pr.AuthorID, pr.Status, pr.AssignedReviewers}
 
-	err := r.DB.QueryRow(ctx, query, args...).Scan(&pr.CreatedAt, &pr.MergedAt)
+	err := conn.QueryRow(ctx, query, args...).Scan(&pr.CreatedAt, &pr.MergedAt)
 	if err != nil {
 		return err
 	}
@@ -44,7 +46,7 @@ func (r *PullRequestRepo) Insert(pr *domain.PR) error {
 	return nil
 }
 
-func (r *PullRequestRepo) UpdateReviewers(pr *domain.PR) error {
+func (r *PullRequestRepo) UpdateReviewers(ctx context.Context, pr *domain.PR) error {
 	query := `
 		UPDATE pull_requests
 		SET assigned_reviewers = $1
@@ -52,10 +54,9 @@ func (r *PullRequestRepo) UpdateReviewers(pr *domain.PR) error {
 		RETURNING created_at, merged_at
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
-	err := r.DB.QueryRow(ctx, query, pr.AssignedReviewers, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
+	err := conn.QueryRow(ctx, query, pr.AssignedReviewers, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
 	if err != nil {
 		return err
 	}
@@ -63,7 +64,7 @@ func (r *PullRequestRepo) UpdateReviewers(pr *domain.PR) error {
 	return nil
 }
 
-func (r *PullRequestRepo) UpdateStatus(pr *domain.PR) error {
+func (r *PullRequestRepo) UpdateStatus(ctx context.Context, pr *domain.PR) error {
 	query := `
 		UPDATE pull_requests
 		SET status = $1
@@ -71,10 +72,9 @@ func (r *PullRequestRepo) UpdateStatus(pr *domain.PR) error {
 		RETURNING created_at, merged_at
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
-	err := r.DB.QueryRow(ctx, query, pr.Status, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
+	err := conn.QueryRow(ctx, query, pr.Status, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -87,17 +87,16 @@ func (r *PullRequestRepo) UpdateStatus(pr *domain.PR) error {
 	return nil
 }
 
-func (r *PullRequestRepo) GetAllForUser(userID int64) ([]*domain.PR, error) {
+func (r *PullRequestRepo) GetAllForUser(ctx context.Context, userID string) ([]*domain.PR, error) {
 	query := `
 		SELECT id, name, author_id, status, assigned_reviewers
 		FROM pull_requests
 		WHERE author_id = $1
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
-	rows, err := r.DB.Query(ctx, query, userID)
+	rows, err := conn.Query(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -130,19 +129,18 @@ func (r *PullRequestRepo) GetAllForUser(userID int64) ([]*domain.PR, error) {
 	return prs, nil
 }
 
-func (r *PullRequestRepo) GetByID(id int64) (*domain.PR, error) {
+func (r *PullRequestRepo) GetByID(ctx context.Context, id string) (*domain.PR, error) {
 	query := `
 		SELECT id, name, author_id, status, assigned_reviewers
 		FROM pull_requests
 		WHERE id = $1
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
 	var pr domain.PR
 
-	err := r.DB.QueryRow(ctx, query, id).Scan(&pr.ID, &pr.Name, &pr.AuthorID, &pr.Status, &pr.AssignedReviewers)
+	err := conn.QueryRow(ctx, query, id).Scan(&pr.ID, &pr.Name, &pr.AuthorID, &pr.Status, &pr.AssignedReviewers)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):

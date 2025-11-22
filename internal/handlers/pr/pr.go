@@ -13,13 +13,13 @@ import (
 )
 
 type PRMerger interface {
-	MergePullReq(id int64) (*domain.PR, error)
+	MergePullReq(id string) (*domain.PR, error)
 }
 
 func NewPostMergeHandler(logger *slog.Logger, service PRMerger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
-			PullRequestID int64 `json:"pull_request_id"`
+			PullRequestID string `json:"pull_request_id"`
 		}
 
 		err := json.Read(w, r, &input)
@@ -48,15 +48,15 @@ func NewPostMergeHandler(logger *slog.Logger, service PRMerger) http.HandlerFunc
 }
 
 type PullReqCreater interface {
-	CreatePullReq(id int64, name string, authorID int64) (*domain.PR, error)
+	CreatePullReq(id, name, authorID string) (*domain.PR, error)
 }
 
 func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
-			PullReqId   int64  `json:"pull_request_id"`
+			PullReqId   string `json:"pull_request_id"`
 			PullReqName string `json:"pull_request_name"`
-			AuthodID    int64  `json:"author_id"`
+			AuthodID    string `json:"author_id"`
 		}
 
 		err := json.Read(w, r, &input)
@@ -79,7 +79,7 @@ func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.Han
 			}
 		}
 
-		err = json.Write(w, http.StatusCreated, json.Envelope{"pull_request": pr}, nil)
+		err = json.Write(w, http.StatusCreated, json.Envelope{"pr": pr}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
@@ -87,14 +87,14 @@ func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.Han
 }
 
 type PullReqReassigner interface {
-	ReassignReviewer(prID, userID int64) (*domain.PR, error)
+	ReassignReviewer(prID, userID string) (*domain.PR, error)
 }
 
 func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
-			PullReqID int64 `json:"pull_request_id"`
-			OldUserID int64 `json:"old_user_id"`
+			PullReqID string `json:"pull_request_id"`
+			OldUserID string `json:"old_user_id"`
 		}
 
 		err := json.Read(w, r, &input)
@@ -122,7 +122,7 @@ func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http
 			return
 		}
 
-		err = json.Write(w, http.StatusOK, json.Envelope{"pull_request": pr, "replaced_by": input.OldUserID}, nil)
+		err = json.Write(w, http.StatusOK, json.Envelope{"pr": pr, "replaced_by": input.OldUserID}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
