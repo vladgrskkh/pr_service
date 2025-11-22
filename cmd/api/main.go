@@ -19,6 +19,8 @@ func main() {
 
 	app := application.NewAppllication(cfgFile)
 
+	defer app.DB.Close()
+
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", app.Cfg.Port),
 		Handler:      app.Routes(),

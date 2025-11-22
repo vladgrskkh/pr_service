@@ -6,6 +6,7 @@ import (
 
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 )
@@ -36,8 +37,10 @@ func (r *TeamRepository) Insert(ctx context.Context, team *domain.Team) error {
 
 	_, err := conn.Exec(ctx, query, team.Name)
 	if err != nil {
+		var pgErr *pgconn.PgError
+
 		switch {
-		case err.Error() == `ERROR: duplicate key value violates unique constraint "teams_name_key" (SQLSTATE 23505)`:
+		case errors.As(err, &pgErr) && pgErr.Code == "23505":
 			return ErrDuplicateTeamName
 		default:
 			return err

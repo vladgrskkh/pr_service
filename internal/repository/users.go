@@ -40,7 +40,7 @@ func (r *UsersRepo) SetIsActive(ctx context.Context, id string, isActive bool) (
 
 	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
-	err := conn.QueryRow(ctx, query, id, isActive).Scan(&user.ID, &user.Name, &user.TeamName, &user.IsActive)
+	err := conn.QueryRow(ctx, query, isActive, id).Scan(&user.ID, &user.Name, &user.TeamName, &user.IsActive)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
@@ -102,9 +102,9 @@ func (r *UsersRepo) Get(ctx context.Context, id string) (*domain.User, error) {
 	return &user, nil
 }
 
-func (r *UsersRepo) GetAllForTeam(ctx context.Context, teamName string) ([]string, error) {
+func (r *UsersRepo) GetAllForTeam(ctx context.Context, teamName string) ([]*domain.User, error) {
 	query := `
-		SELECT id
+		SELECT id, is_active
 		FROM users
 		WHERE team_name = $1
 	`
@@ -118,17 +118,17 @@ func (r *UsersRepo) GetAllForTeam(ctx context.Context, teamName string) ([]strin
 
 	defer rows.Close()
 
-	var members []string
+	var members []*domain.User
 
 	for rows.Next() {
-		var member string
+		var member domain.User
 
-		err := rows.Scan(&member)
+		err := rows.Scan(&member.ID, &member.IsActive)
 		if err != nil {
 			return nil, err
 		}
 
-		members = append(members, member)
+		members = append(members, &member)
 	}
 
 	if err = rows.Err(); err != nil {
