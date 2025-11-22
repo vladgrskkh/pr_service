@@ -12,6 +12,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/config"
 	"github.com/vladgrskkh/pr_service/internal/handlers/healthcheck"
+	"github.com/vladgrskkh/pr_service/internal/handlers/pr"
+	"github.com/vladgrskkh/pr_service/internal/handlers/team"
+	"github.com/vladgrskkh/pr_service/internal/handlers/users"
+	"github.com/vladgrskkh/pr_service/internal/repository"
 	"github.com/vladgrskkh/pr_service/internal/service"
 )
 
@@ -60,8 +64,6 @@ func NewAppllication(cfgFile string) *Application {
 		os.Exit(1)
 	}
 
-	pullReqService := service.NewPullReqService()
-
 	dbpool, err := openDB(cfg)
 	if err != nil {
 		logger.Log(context.Background(), LevelFatal, err.Error())
@@ -71,6 +73,12 @@ func NewAppllication(cfgFile string) *Application {
 	defer dbpool.Close()
 
 	logger.Info("db connection pool established")
+
+	pullReqsRepo := repository.NewPullRequestRepo(dbpool)
+	teamsRepo := repository.NewTeamRepository(dbpool)
+	usersRepo := repository.NewUsersRepo(dbpool)
+
+	pullReqService := service.NewPullReqService(logger, pullReqsRepo, teamsRepo, usersRepo)
 
 	return &Application{
 		Cfg:            cfg,
@@ -103,7 +111,18 @@ func openDB(cfg *config.Config) (*pgxpool.Pool, error) {
 
 func (app *Application) Routes() http.Handler {
 	r := chi.NewRouter()
+
 	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version))
+
+	r.Get("/users/{userID}/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))
+	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService))
+
+	r.Get("/team/{teamName}", team.NewGetTeamHandler(app.Logger, app.PullReqService))
+	r.Post("/team/add", team.NewPostTeamHandler(app.Logger, app.PullReqService))
+
+	r.Post("/pullRequest/merge", pr.NewPostMergeHandler(app.Logger, app.PullReqService))
+	r.Post("/pullRequest/create", pr.NewPostPullReqHandler(app.Logger, app.PullReqService))
+	r.Post("/pullRequest/reassign", pr.NewPostReassignHandler(app.Logger, app.PullReqService))
 
 	return r
 }

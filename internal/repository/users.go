@@ -24,16 +24,16 @@ func NewUsersRepo(db *pgxpool.Pool) *UsersRepo {
 	}
 }
 
-func (r *UsersRepo) SetIsActive(id int64) (*domain.User, error) {
+func (r *UsersRepo) SetIsActive(id int64, isActive bool) (*domain.User, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
 
 	query := `
 		UPDATE users
-		SET is_active = true
-		WHERE user_id = $1
-		RETURNING user_id, username, is_active
+		SET is_active = $1
+		WHERE user_id = $2
+		RETURNING user_id, username, team_name, is_active
 	`
 
 	var user domain.User
@@ -41,7 +41,7 @@ func (r *UsersRepo) SetIsActive(id int64) (*domain.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := r.db.QueryRow(ctx, query, id).Scan(&user.ID, &user.Name, &user.IsActive)
+	err := r.db.QueryRow(ctx, query, id, isActive).Scan(&user.ID, &user.Name, &user.TeamName, &user.IsActive)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):

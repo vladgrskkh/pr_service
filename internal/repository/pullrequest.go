@@ -2,10 +2,16 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
+)
+
+var (
+	ErrDuplicatePullReqID = errors.New("duplicate pull request id")
 )
 
 type PullRequestRepo struct {
@@ -70,7 +76,12 @@ func (r *PullRequestRepo) UpdateStatus(pr *domain.PR) error {
 
 	err := r.DB.QueryRow(ctx, query, pr.Status, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
 	if err != nil {
-		return err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return ErrRecordNotFound
+		default:
+			return err
+		}
 	}
 
 	return nil
@@ -117,4 +128,29 @@ func (r *PullRequestRepo) GetAllForUser(userID int64) ([]*domain.PR, error) {
 	}
 
 	return prs, nil
+}
+
+func (r *PullRequestRepo) GetByID(id int64) (*domain.PR, error) {
+	query := `
+		SELECT id, name, author_id, status, assigned_reviewers
+		FROM pull_requests
+		WHERE id = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var pr domain.PR
+
+	err := r.DB.QueryRow(ctx, query, id).Scan(&pr.ID, &pr.Name, &pr.AuthorID, &pr.Status, &pr.AssignedReviewers)
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &pr, nil
 }

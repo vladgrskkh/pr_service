@@ -10,6 +10,10 @@ import (
 	"github.com/vladgrskkh/pr_service/internal/domain"
 )
 
+var (
+	ErrDuplicateTeamName = errors.New("duplicate team name")
+)
+
 type TeamRepository struct {
 	DB *pgxpool.Pool
 }
@@ -31,7 +35,12 @@ func (r *TeamRepository) Insert(team *domain.Team) error {
 
 	_, err := r.DB.Exec(ctx, query, team.Name, team.Members)
 	if err != nil {
-		return err
+		switch {
+		case err.Error() == `ERROR: duplicate key value violates unique constraint "teams_name_key" (SQLSTATE 23505)`:
+			return ErrDuplicateTeamName
+		default:
+			return err
+		}
 	}
 
 	return nil

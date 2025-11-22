@@ -35,3 +35,16 @@ func ServerErrorResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Req
 	message := "server encountered a problem and could not process your request"
 	ErrorResponse(logger, w, r, http.StatusInternalServerError, message)
 }
+
+func NotFoundResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
+	message := "requested resource could not be found"
+	ErrorResponse(logger, w, r, http.StatusNotFound, message)
+}
+
+func BadRequestResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
+	ErrorResponse(logger, w, r, http.StatusBadRequest, err.Error())
+}
+
+func EditConflictResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
+	ErrorResponse(logger, w, r, http.StatusConflict, err.Error())
+}
