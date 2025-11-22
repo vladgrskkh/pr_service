@@ -116,17 +116,17 @@ func openDB(cfg *config.Config) (*pgxpool.Pool, error) {
 func (app *Application) Routes() http.Handler {
 	r := chi.NewRouter()
 
-	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version))
+	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version)) // working
 
-	r.Get("/users/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))
-	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService))
+	r.Get("/users/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))         // working
+	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService)) // working
 
-	r.Get("/team/get", team.NewGetTeamHandler(app.Logger, app.PullReqService))
-	r.Post("/team/add", team.NewPostTeamHandler(app.Logger, app.PullReqService))
+	r.Get("/team/get", team.NewGetTeamHandler(app.Logger, app.PullReqService))   // working
+	r.Post("/team/add", team.NewPostTeamHandler(app.Logger, app.PullReqService)) // working
 
-	r.Post("/pullRequest/merge", pr.NewPostMergeHandler(app.Logger, app.PullReqService))
-	r.Post("/pullRequest/create", pr.NewPostPullReqHandler(app.Logger, app.PullReqService))
-	r.Post("/pullRequest/reassign", pr.NewPostReassignHandler(app.Logger, app.PullReqService))
+	r.Post("/pullRequest/merge", pr.NewPostMergeHandler(app.Logger, app.PullReqService))       // working
+	r.Post("/pullRequest/create", pr.NewPostPullReqHandler(app.Logger, app.PullReqService))    // working
+	r.Post("/pullRequest/reassign", pr.NewPostReassignHandler(app.Logger, app.PullReqService)) // working
 
 	return r
 }

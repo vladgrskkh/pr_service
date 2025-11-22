@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 
@@ -31,16 +32,23 @@ func (r *PullRequestRepo) Insert(ctx context.Context, pr *domain.PR) error {
 	query := `
 		INSERT INTO pull_requests (id, name, author_id, status, assigned_reviewers)
 		VALUES ($1, $2, $3, $4, $5)
-		RETURNING created_at, merged_at
+		RETURNING created_at
 	`
 
 	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
 	args := []interface{}{pr.ID, pr.Name, pr.AuthorID, pr.Status, pr.AssignedReviewers}
 
-	err := conn.QueryRow(ctx, query, args...).Scan(&pr.CreatedAt, &pr.MergedAt)
+	err := conn.QueryRow(ctx, query, args...).Scan(&pr.CreatedAt)
 	if err != nil {
-		return err
+		var pgErr *pgconn.PgError
+
+		switch {
+		case errors.As(err, &pgErr) && pgErr.Code == "23505":
+			return ErrDuplicatePullReqID
+		default:
+			return err
+		}
 	}
 
 	return nil
@@ -69,12 +77,12 @@ func (r *PullRequestRepo) UpdateStatus(ctx context.Context, pr *domain.PR) error
 		UPDATE pull_requests
 		SET status = $1
 		WHERE id = $2
-		RETURNING created_at, merged_at
+		RETURNING name, author_id, assigned_reviewers, created_at, merged_at
 	`
 
 	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
-	err := conn.QueryRow(ctx, query, pr.Status, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
+	err := conn.QueryRow(ctx, query, pr.Status, pr.ID).Scan(&pr.Name, &pr.AuthorID, &pr.AssignedReviewers, &pr.CreatedAt, &pr.MergedAt)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):

@@ -34,6 +34,7 @@ func NewPostSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http
 			case errors.Is(err, repository.ErrRecordNotFound):
 				apierrors.NotFoundResponse(logger, w, r, err)
 			default:
+				logger.Info("inside db error internal")
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
 
@@ -42,6 +43,7 @@ func NewPostSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http
 
 		err = json.Write(w, http.StatusOK, json.Envelope{"user": user}, nil)
 		if err != nil {
+			logger.Info("inside json write error internal")
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
 	}

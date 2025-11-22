@@ -54,7 +54,7 @@ type PullReqCreater interface {
 func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
-			PullReqId   string `json:"pull_request_id"`
+			PullReqID   string `json:"pull_request_id"`
 			PullReqName string `json:"pull_request_name"`
 			AuthodID    string `json:"author_id"`
 		}
@@ -65,7 +65,7 @@ func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.Han
 			return
 		}
 
-		pr, err := service.CreatePullReq(input.AuthodID, input.PullReqName, input.AuthodID)
+		pr, err := service.CreatePullReq(input.PullReqID, input.PullReqName, input.AuthodID)
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrDuplicatePullReqID):
@@ -77,6 +77,8 @@ func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.Han
 			default:
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
+
+			return
 		}
 
 		err = json.Write(w, http.StatusCreated, json.Envelope{"pr": pr}, nil)
