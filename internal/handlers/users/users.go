@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/vladgrskkh/pr_service/internal/apierrors"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 	"github.com/vladgrskkh/pr_service/internal/repository"
@@ -54,8 +53,7 @@ type ReviewsGetter interface {
 
 func NewGetReviewsHandler(logger *slog.Logger, service ReviewsGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// placeholder
-		userID := chi.URLParam(r, "userID")
+		userID := r.URL.Query().Get("user_id")
 
 		prs, err := service.GetReviewByUser(userID)
 		if err != nil {

@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/vladgrskkh/pr_service/internal/apierrors"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 	"github.com/vladgrskkh/pr_service/internal/repository"
@@ -54,8 +53,7 @@ type TeamGetter interface {
 
 func NewGetTeamHandler(logger *slog.Logger, service TeamGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// will be changed
-		teamName := chi.URLParam(r, "teamName")
+		teamName := r.URL.Query().Get("team_name")
 
 		team, err := service.GetTeam(teamName)
 		if err != nil {
