@@ -119,6 +119,7 @@ func (app *Application) Routes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Metrics)
+	r.Use(middleware.RecoverPanic(app.Logger))
 
 	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version)) // working
 
