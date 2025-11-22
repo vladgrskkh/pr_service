@@ -54,7 +54,7 @@ func (s *PullReqService) GetReviewByUser(id string) ([]*domain.PR, error) {
 	return prs, nil
 }
 
-func (s *PullReqService) CreateTeam(name string, members []*domain.User) (*domain.Team, error) {
+func (s *PullReqService) CreateTeam(name string, members []string) (*domain.Team, error) {
 	team := &domain.Team{
 		Name: name,
 	}
@@ -69,13 +69,16 @@ func (s *PullReqService) CreateTeam(name string, members []*domain.User) (*domai
 	return team, nil
 }
 
-func (s *PullReqService) GetTeam(name string) (*domain.Team, error) {
+func (s *PullReqService) GetTeam(name string) (*domain.Team, []string, error) {
 	team, err := s.teamsRepo.Get(name)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return team, nil
+	// implement logic here
+	members := make([]string, 0)
+
+	return team, members, nil
 }
 
 func (s *PullReqService) MergePullReq(id string) (*domain.PR, error) {
@@ -135,10 +138,7 @@ func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, erro
 		return nil, ErrUserNotAssigned
 	}
 
-	usersID := make([]string, 0, len(pr.AssignedReviewers))
-	for _, user := range pr.AssignedReviewers {
-		usersID = append(usersID, user)
-	}
+	usersID := append([]string{}, pr.AssignedReviewers...)
 
 	i := slices.Index(usersID, userID)
 	if i == -1 {

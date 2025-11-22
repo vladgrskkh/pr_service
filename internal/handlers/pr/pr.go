@@ -79,7 +79,7 @@ func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.Han
 			}
 		}
 
-		err = json.Write(w, http.StatusCreated, json.Envelope{"pull_request": pr}, nil)
+		err = json.Write(w, http.StatusCreated, json.Envelope{"pr": pr}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
@@ -122,7 +122,7 @@ func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http
 			return
 		}
 
-		err = json.Write(w, http.StatusOK, json.Envelope{"pull_request": pr, "replaced_by": input.OldUserID}, nil)
+		err = json.Write(w, http.StatusOK, json.Envelope{"pr": pr, "replaced_by": input.OldUserID}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}

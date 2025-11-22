@@ -12,14 +12,14 @@ import (
 )
 
 type TeamCreater interface {
-	CreateTeam(name string, members []*domain.User) (*domain.Team, error)
+	CreateTeam(name string, members []string) (*domain.Team, error)
 }
 
 func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
-			Name    string         `json:"name"`
-			Members []*domain.User `json:"members"`
+			Name    string   `json:"name"`
+			Members []string `json:"members"`
 		}
 
 		err := json.Read(w, r, &input)
@@ -40,7 +40,7 @@ func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFu
 			return
 		}
 
-		err = json.Write(w, http.StatusCreated, json.Envelope{"team": team}, nil)
+		err = json.Write(w, http.StatusCreated, json.Envelope{"team": team.Name, "members": input.Members}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
@@ -48,14 +48,14 @@ func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFu
 }
 
 type TeamGetter interface {
-	GetTeam(name string) (*domain.Team, error)
+	GetTeam(name string) (*domain.Team, []string, error)
 }
 
 func NewGetTeamHandler(logger *slog.Logger, service TeamGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		teamName := r.URL.Query().Get("team_name")
 
-		team, err := service.GetTeam(teamName)
+		team, members, err := service.GetTeam(teamName)
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRecordNotFound):
@@ -67,7 +67,7 @@ func NewGetTeamHandler(logger *slog.Logger, service TeamGetter) http.HandlerFunc
 			return
 		}
 
-		err = json.Write(w, http.StatusOK, json.Envelope{"team": team}, nil)
+		err = json.Write(w, http.StatusOK, json.Envelope{"team_name": team.Name, "members": members}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
