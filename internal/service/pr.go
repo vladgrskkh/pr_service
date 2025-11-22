@@ -76,15 +76,19 @@ func (s *PullReqService) CreateTeam(name string, members []*domain.User) (*domai
 	}
 
 	err := s.trManager.Do(ctx, func(ctx context.Context) error {
+		s.logger.Info("inside transaction")
 		if err := s.teamsRepo.Insert(ctx, team); err != nil {
+			s.logger.Info("error inserting team")
 			return err
 		}
 
+		s.logger.Info("start create users")
 		for _, member := range members {
 			member.TeamName = team.Name
 
 			err := s.usersRepo.CreateUser(ctx, member)
 			if err != nil {
+				s.logger.Info("error creating user")
 				return err
 			}
 		}
@@ -103,13 +107,17 @@ func (s *PullReqService) GetTeam(name string) (*domain.Team, []string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	s.logger.Info("inside getTeam")
+
 	team, err := s.teamsRepo.Get(ctx, name)
 	if err != nil {
+		s.logger.Info("team get error")
 		return nil, nil, err
 	}
 
 	members, err := s.usersRepo.GetAllForTeam(ctx, team.Name)
 	if err != nil {
+		s.logger.Info("get all for team error")
 		return nil, nil, err
 	}
 

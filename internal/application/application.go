@@ -74,8 +74,6 @@ func NewAppllication(cfgFile string) *Application {
 		os.Exit(1)
 	}
 
-	defer dbpool.Close()
-
 	logger.Info("db connection pool established")
 
 	pullReqsRepo := repository.NewPullRequestRepo(dbpool, trmpgx.DefaultCtxGetter)
@@ -120,7 +118,7 @@ func (app *Application) Routes() http.Handler {
 
 	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version))
 
-	r.Get("/users/{userID}/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))
+	r.Get("/users/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))
 	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService))
 
 	r.Get("/team/get", team.NewGetTeamHandler(app.Logger, app.PullReqService))

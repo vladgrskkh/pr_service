@@ -1,4 +1,14 @@
-CREATE TYPE pull_req_status AS ENUM ('OPEN', 'MERGED');
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_type WHERE typname = 'pull_req_status'
+    ) THEN
+        EXECUTE $sql$
+            CREATE TYPE pull_req_status AS ENUM ('OPEN', 'MERGED');
+        $sql$;
+    END IF;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS pull_requests (
     id text PRIMARY KEY,

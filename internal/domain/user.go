@@ -4,6 +4,6 @@ package domain
 type User struct {
 	ID       string `json:"user_id"`
 	Name     string `json:"username"`
-	TeamName string `json:"team_name"`
+	TeamName string `json:"team_name,omitempty"`
 	IsActive bool   `json:"is_active"`
 }

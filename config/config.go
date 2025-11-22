@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/BurntSushi/toml"
@@ -38,6 +39,7 @@ func NewConfig(cfgFile string) (*Config, error) {
 
 	if cfg.Env == "development" {
 		cfg.DB.DSN = os.Getenv("DB_DSN_LOCAL")
+		slog.Info("DB_DSN_LOCAL", slog.String("value", cfg.DB.DSN))
 	} else {
 		cfg.DB.DSN = os.Getenv("DB_DSN")
 	}
