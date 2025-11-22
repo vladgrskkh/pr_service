@@ -10,11 +10,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/vladgrskkh/pr_service/config"
 	"github.com/vladgrskkh/pr_service/internal/handlers/healthcheck"
 	"github.com/vladgrskkh/pr_service/internal/handlers/pr"
 	"github.com/vladgrskkh/pr_service/internal/handlers/team"
 	"github.com/vladgrskkh/pr_service/internal/handlers/users"
+	"github.com/vladgrskkh/pr_service/internal/middleware"
 	"github.com/vladgrskkh/pr_service/internal/repository"
 	"github.com/vladgrskkh/pr_service/internal/service"
 
@@ -116,6 +118,8 @@ func openDB(cfg *config.Config) (*pgxpool.Pool, error) {
 func (app *Application) Routes() http.Handler {
 	r := chi.NewRouter()
 
+	r.Use(middleware.Metrics)
+
 	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version)) // working
 
 	r.Get("/users/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))         // working
@@ -127,6 +131,8 @@ func (app *Application) Routes() http.Handler {
 	r.Post("/pullRequest/merge", pr.NewPostMergeHandler(app.Logger, app.PullReqService))       // working
 	r.Post("/pullRequest/create", pr.NewPostPullReqHandler(app.Logger, app.PullReqService))    // working
 	r.Post("/pullRequest/reassign", pr.NewPostReassignHandler(app.Logger, app.PullReqService)) // working
+
+	r.Method(http.MethodGet, "/metrics", promhttp.Handler()) // working
 
 	return r
 }

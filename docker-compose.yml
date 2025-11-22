@@ -40,5 +40,15 @@ services:
     volumes:
       - ./migrations:/migrations
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.55.0
+    volumes:
+      - $PWD/config/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+
 volumes:
   pgdata:
