@@ -121,6 +121,8 @@ func (app *Application) Routes() http.Handler {
 	r.Post("/team/add", team.NewPostTeamHandler(app.Logger, app.PullReqService))
 
 	r.Post("/pullRequest/merge", pr.NewPostMergeHandler(app.Logger, app.PullReqService))
+	r.Post("/pullRequest/create", pr.NewPostPullReqHandler(app.Logger, app.PullReqService))
+	r.Post("/pullRequest/reassign", pr.NewPostReassignHandler(app.Logger, app.PullReqService))
 
 	return r
 }

@@ -12,11 +12,11 @@ import (
 	"github.com/vladgrskkh/pr_service/pkg/helpers/json"
 )
 
-type TeamCreated interface {
+type TeamCreater interface {
 	CreateTeam(name string, members []*domain.User) (*domain.Team, error)
 }
 
-func NewPostTeamHandler(logger *slog.Logger, service TeamCreated) http.HandlerFunc {
+func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
 			Name    string         `json:"name"`

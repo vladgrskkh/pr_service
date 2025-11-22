@@ -44,3 +44,7 @@ func NotFoundResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Reques
 func BadRequestResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
 	ErrorResponse(logger, w, r, http.StatusBadRequest, err.Error())
 }
+
+func EditConflictResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
+	ErrorResponse(logger, w, r, http.StatusConflict, err.Error())
+}
