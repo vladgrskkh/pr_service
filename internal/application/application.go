@@ -17,6 +17,10 @@ import (
 	"github.com/vladgrskkh/pr_service/internal/handlers/users"
 	"github.com/vladgrskkh/pr_service/internal/repository"
 	"github.com/vladgrskkh/pr_service/internal/service"
+
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 )
 
 const (
@@ -74,11 +78,13 @@ func NewAppllication(cfgFile string) *Application {
 
 	logger.Info("db connection pool established")
 
-	pullReqsRepo := repository.NewPullRequestRepo(dbpool)
-	teamsRepo := repository.NewTeamRepository(dbpool)
-	usersRepo := repository.NewUsersRepo(dbpool)
+	pullReqsRepo := repository.NewPullRequestRepo(dbpool, trmpgx.DefaultCtxGetter)
+	teamsRepo := repository.NewTeamRepository(dbpool, trmpgx.DefaultCtxGetter)
+	usersRepo := repository.NewUsersRepo(dbpool, trmpgx.DefaultCtxGetter)
 
-	pullReqService := service.NewPullReqService(logger, pullReqsRepo, teamsRepo, usersRepo)
+	trManager := manager.Must(trmpgx.NewDefaultFactory(dbpool))
+
+	pullReqService := service.NewPullReqService(logger, pullReqsRepo, teamsRepo, usersRepo, trManager)
 
 	return &Application{
 		Cfg:            cfg,

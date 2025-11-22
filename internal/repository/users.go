@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
-	"time"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
@@ -15,16 +15,18 @@ var (
 )
 
 type UsersRepo struct {
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
+	getter *trmpgx.CtxGetter
 }
 
-func NewUsersRepo(db *pgxpool.Pool) *UsersRepo {
+func NewUsersRepo(db *pgxpool.Pool, c *trmpgx.CtxGetter) *UsersRepo {
 	return &UsersRepo{
-		db: db,
+		db:     db,
+		getter: c,
 	}
 }
 
-func (r *UsersRepo) SetIsActive(id string, isActive bool) (*domain.User, error) {
+func (r *UsersRepo) SetIsActive(ctx context.Context, id string, isActive bool) (*domain.User, error) {
 	query := `
 		UPDATE users
 		SET is_active = $1
@@ -34,10 +36,9 @@ func (r *UsersRepo) SetIsActive(id string, isActive bool) (*domain.User, error) 
 
 	var user domain.User
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
 
-	err := r.db.QueryRow(ctx, query, id, isActive).Scan(&user.ID, &user.Name, &user.TeamName, &user.IsActive)
+	err := conn.QueryRow(ctx, query, id, isActive).Scan(&user.ID, &user.Name, &user.TeamName, &user.IsActive)
 	if err != nil {
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):

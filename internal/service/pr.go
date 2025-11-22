@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"slices"
+	"time"
 
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 	"github.com/vladgrskkh/pr_service/internal/repository"
 )
@@ -20,6 +23,7 @@ type PullReqService struct {
 	pullReqsRepo *repository.PullRequestRepo
 	teamsRepo    *repository.TeamRepository
 	usersRepo    *repository.UsersRepo
+	trManager    *manager.Manager
 }
 
 func NewPullReqService(
@@ -27,17 +31,22 @@ func NewPullReqService(
 	pullReqsRepo *repository.PullRequestRepo,
 	teamsRepo *repository.TeamRepository,
 	usersRepo *repository.UsersRepo,
+	trManager *manager.Manager,
 ) *PullReqService {
 	return &PullReqService{
 		logger:       logger,
 		pullReqsRepo: pullReqsRepo,
 		teamsRepo:    teamsRepo,
 		usersRepo:    usersRepo,
+		trManager:    trManager,
 	}
 }
 
 func (s *PullReqService) SetIsActiveUser(id string, isActive bool) (*domain.User, error) {
-	user, err := s.usersRepo.SetIsActive(id, isActive)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	user, err := s.usersRepo.SetIsActive(ctx, id, isActive)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +55,10 @@ func (s *PullReqService) SetIsActiveUser(id string, isActive bool) (*domain.User
 }
 
 func (s *PullReqService) GetReviewByUser(id string) ([]*domain.PR, error) {
-	prs, err := s.pullReqsRepo.GetAllForUser(id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	prs, err := s.pullReqsRepo.GetAllForUser(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -55,11 +67,14 @@ func (s *PullReqService) GetReviewByUser(id string) ([]*domain.PR, error) {
 }
 
 func (s *PullReqService) CreateTeam(name string, members []string) (*domain.Team, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	team := &domain.Team{
 		Name: name,
 	}
 
-	err := s.teamsRepo.Insert(team)
+	err := s.teamsRepo.Insert(ctx, team)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +85,10 @@ func (s *PullReqService) CreateTeam(name string, members []string) (*domain.Team
 }
 
 func (s *PullReqService) GetTeam(name string) (*domain.Team, []string, error) {
-	team, err := s.teamsRepo.Get(name)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	team, err := s.teamsRepo.Get(ctx, name)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,12 +100,15 @@ func (s *PullReqService) GetTeam(name string) (*domain.Team, []string, error) {
 }
 
 func (s *PullReqService) MergePullReq(id string) (*domain.PR, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	pr := &domain.PR{
 		ID:     id,
 		Status: "merged",
 	}
 
-	err := s.pullReqsRepo.UpdateStatus(pr)
+	err := s.pullReqsRepo.UpdateStatus(ctx, pr)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +131,10 @@ func (s *PullReqService) CreatePullReq(id, name, authorID string) (*domain.PR, e
 		AssignedReviewers: s.assigneReviewers(),
 	}
 
-	err := s.pullReqsRepo.Insert(pr)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := s.pullReqsRepo.Insert(ctx, pr)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +149,10 @@ func (s *PullReqService) assigneReviewers() []string {
 }
 
 func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, error) {
-	pr, err := s.pullReqsRepo.GetByID(prID)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	pr, err := s.pullReqsRepo.GetByID(ctx, prID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +180,7 @@ func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, erro
 	// change that to random
 	pr.AssignedReviewers[i] = possibleReviewers[0]
 
-	err = s.pullReqsRepo.UpdateReviewers(pr)
+	err = s.pullReqsRepo.UpdateReviewers(ctx, pr)
 	if err != nil {
 		return nil, err
 	}
