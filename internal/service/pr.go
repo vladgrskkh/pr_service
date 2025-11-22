@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math/rand/v2"
 	"slices"
 	"time"
 
@@ -66,7 +67,7 @@ func (s *PullReqService) GetReviewByUser(id string) ([]*domain.PR, error) {
 	return prs, nil
 }
 
-func (s *PullReqService) CreateTeam(name string, members []string) (*domain.Team, error) {
+func (s *PullReqService) CreateTeam(name string, members []*domain.User) (*domain.Team, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -74,12 +75,26 @@ func (s *PullReqService) CreateTeam(name string, members []string) (*domain.Team
 		Name: name,
 	}
 
-	err := s.teamsRepo.Insert(ctx, team)
+	err := s.trManager.Do(ctx, func(ctx context.Context) error {
+		if err := s.teamsRepo.Insert(ctx, team); err != nil {
+			return err
+		}
+
+		for _, member := range members {
+			member.TeamName = team.Name
+
+			err := s.usersRepo.CreateUser(ctx, member)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-
-	// add logic for adding users to team
 
 	return team, nil
 }
@@ -93,8 +108,10 @@ func (s *PullReqService) GetTeam(name string) (*domain.Team, []string, error) {
 		return nil, nil, err
 	}
 
-	// implement logic here
-	members := make([]string, 0)
+	members, err := s.usersRepo.GetAllForTeam(ctx, team.Name)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return team, members, nil
 }
@@ -105,7 +122,7 @@ func (s *PullReqService) MergePullReq(id string) (*domain.PR, error) {
 
 	pr := &domain.PR{
 		ID:     id,
-		Status: "merged",
+		Status: "MERGED",
 	}
 
 	err := s.pullReqsRepo.UpdateStatus(ctx, pr)
@@ -123,18 +140,22 @@ func (s *PullReqService) CreatePullReq(id, name, authorID string) (*domain.PR, e
 	//
 	// another thing to consider is do i need to use transaction
 	// i dont change any state in users so i gueess i dont
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	reviewers, err := s.assigneReviewers(ctx, authorID)
+	if err != nil {
+		return nil, err
+	}
 	pr := &domain.PR{
 		ID:                id,
 		Name:              name,
 		AuthorID:          authorID,
-		Status:            "open",
-		AssignedReviewers: s.assigneReviewers(),
+		Status:            "OPEN",
+		AssignedReviewers: reviewers,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	err := s.pullReqsRepo.Insert(ctx, pr)
+	err = s.pullReqsRepo.Insert(ctx, pr)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +165,26 @@ func (s *PullReqService) CreatePullReq(id, name, authorID string) (*domain.PR, e
 
 // i need to query all active users in the same team as author and pick 2
 // if there are less than 2 active users in the team, assigne what i have (even 0)
-func (s *PullReqService) assigneReviewers() []string {
-	return make([]string, 2)
+func (s *PullReqService) assigneReviewers(ctx context.Context, authorId string) ([]string, error) {
+	user, err := s.usersRepo.Get(ctx, authorId)
+	if err != nil {
+		return nil, err
+	}
+
+	members, err := s.usersRepo.GetAllForTeam(ctx, user.TeamName)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(members) < 2 {
+		return members, nil
+	}
+
+	rand.Shuffle(len(members), func(i, j int) {
+		members[i], members[j] = members[j], members[i]
+	})
+
+	return members[:2], nil
 }
 
 func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, error) {
@@ -172,12 +211,18 @@ func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, erro
 		return nil, ErrUserNotAssigned
 	}
 
-	possibleReviewers := s.assigneReviewers()
+	possibleReviewers, err := s.assigneReviewers(ctx, pr.AuthorID)
+	if err != nil {
+		return nil, err
+	}
+
 	if possibleReviewers == nil {
 		return nil, ErrNoCandidate
 	}
 
-	// change that to random
+	rand.Shuffle(len(possibleReviewers), func(i, j int) {
+		possibleReviewers[i], possibleReviewers[j] = possibleReviewers[j], possibleReviewers[i]
+	})
 	pr.AssignedReviewers[i] = possibleReviewers[0]
 
 	err = s.pullReqsRepo.UpdateReviewers(ctx, pr)

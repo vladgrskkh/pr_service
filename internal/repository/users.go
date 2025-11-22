@@ -6,12 +6,14 @@ import (
 
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 )
 
 var (
 	ErrRecordNotFound = errors.New("record not found")
+	ErrDuplicateUser  = errors.New("duplicate user")
 )
 
 type UsersRepo struct {
@@ -49,4 +51,90 @@ func (r *UsersRepo) SetIsActive(ctx context.Context, id string, isActive bool) (
 	}
 
 	return &user, nil
+}
+
+func (r *UsersRepo) CreateUser(ctx context.Context, user *domain.User) error {
+	query := `
+		INSERT INTO users (id, name, team_name, is_active)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	args := []interface{}{user.ID, user.Name, user.TeamName, user.IsActive}
+	_, err := conn.Exec(ctx, query, args...)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				return ErrDuplicateUser
+			}
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (r *UsersRepo) Get(ctx context.Context, id string) (*domain.User, error) {
+	query := `
+		SELECT id, name, team_name, is_active
+		FROM users
+		WHERE id = $1
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	var user domain.User
+
+	args := []interface{}{&user.ID, &user.Name, &user.TeamName, &user.IsActive}
+	err := conn.QueryRow(ctx, query, id).Scan(args...)
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &user, nil
+}
+
+func (r *UsersRepo) GetAllForTeam(ctx context.Context, teamName string) ([]string, error) {
+	query := `
+		SELECT id
+		FROM users
+		WHERE team_name = $1
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	rows, err := conn.Query(ctx, query, teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var members []string
+
+	for rows.Next() {
+		var member string
+
+		err := rows.Scan(&member)
+		if err != nil {
+			return nil, err
+		}
+
+		members = append(members, member)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return members, nil
+
 }

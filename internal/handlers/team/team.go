@@ -12,14 +12,14 @@ import (
 )
 
 type TeamCreater interface {
-	CreateTeam(name string, members []string) (*domain.Team, error)
+	CreateTeam(name string, members []*domain.User) (*domain.Team, error)
 }
 
 func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
-			Name    string   `json:"name"`
-			Members []string `json:"members"`
+			Name    string         `json:"name"`
+			Members []*domain.User `json:"members"`
 		}
 
 		err := json.Read(w, r, &input)
