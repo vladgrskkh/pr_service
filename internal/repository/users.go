@@ -24,16 +24,12 @@ func NewUsersRepo(db *pgxpool.Pool) *UsersRepo {
 	}
 }
 
-func (r *UsersRepo) SetIsActive(id int64, isActive bool) (*domain.User, error) {
-	if id < 1 {
-		return nil, ErrRecordNotFound
-	}
-
+func (r *UsersRepo) SetIsActive(id string, isActive bool) (*domain.User, error) {
 	query := `
 		UPDATE users
 		SET is_active = $1
-		WHERE user_id = $2
-		RETURNING user_id, username, team_name, is_active
+		WHERE id = $2
+		RETURNING id, name, team_name, is_active
 	`
 
 	var user domain.User

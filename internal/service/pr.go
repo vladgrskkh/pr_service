@@ -36,7 +36,7 @@ func NewPullReqService(
 	}
 }
 
-func (s *PullReqService) SetIsActiveUser(id int64, isActive bool) (*domain.User, error) {
+func (s *PullReqService) SetIsActiveUser(id string, isActive bool) (*domain.User, error) {
 	user, err := s.usersRepo.SetIsActive(id, isActive)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (s *PullReqService) SetIsActiveUser(id int64, isActive bool) (*domain.User,
 	return user, nil
 }
 
-func (s *PullReqService) GetReviewByUser(id int64) ([]*domain.PR, error) {
+func (s *PullReqService) GetReviewByUser(id string) ([]*domain.PR, error) {
 	prs, err := s.pullReqsRepo.GetAllForUser(id)
 	if err != nil {
 		return nil, err
@@ -56,14 +56,15 @@ func (s *PullReqService) GetReviewByUser(id int64) ([]*domain.PR, error) {
 
 func (s *PullReqService) CreateTeam(name string, members []*domain.User) (*domain.Team, error) {
 	team := &domain.Team{
-		Name:    name,
-		Members: members,
+		Name: name,
 	}
 
 	err := s.teamsRepo.Insert(team)
 	if err != nil {
 		return nil, err
 	}
+
+	// add logic for adding users to team
 
 	return team, nil
 }
@@ -77,7 +78,7 @@ func (s *PullReqService) GetTeam(name string) (*domain.Team, error) {
 	return team, nil
 }
 
-func (s *PullReqService) MergePullReq(id int64) (*domain.PR, error) {
+func (s *PullReqService) MergePullReq(id string) (*domain.PR, error) {
 	pr := &domain.PR{
 		ID:     id,
 		Status: "merged",
@@ -91,7 +92,7 @@ func (s *PullReqService) MergePullReq(id int64) (*domain.PR, error) {
 	return pr, nil
 }
 
-func (s *PullReqService) CreatePullReq(id int64, name string, authorID int64) (*domain.PR, error) {
+func (s *PullReqService) CreatePullReq(id, name, authorID string) (*domain.PR, error) {
 	// problem here is when i query users and than someone change status(false)
 	// i guess its fine cause they were active the moment i query them
 	// it no matter if afterwards there no active
@@ -116,11 +117,11 @@ func (s *PullReqService) CreatePullReq(id int64, name string, authorID int64) (*
 
 // i need to query all active users in the same team as author and pick 2
 // if there are less than 2 active users in the team, assigne what i have (even 0)
-func (s *PullReqService) assigneReviewers() []domain.User {
-	return make([]domain.User, 2)
+func (s *PullReqService) assigneReviewers() []string {
+	return make([]string, 2)
 }
 
-func (s *PullReqService) ReassignReviewer(prID, userID int64) (*domain.PR, error) {
+func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, error) {
 	pr, err := s.pullReqsRepo.GetByID(prID)
 	if err != nil {
 		return nil, err
@@ -130,9 +131,13 @@ func (s *PullReqService) ReassignReviewer(prID, userID int64) (*domain.PR, error
 		return nil, ErrMergedPRChange
 	}
 
-	usersID := make([]int64, 0, len(pr.AssignedReviewers))
+	if pr.AuthorID == userID {
+		return nil, ErrUserNotAssigned
+	}
+
+	usersID := make([]string, 0, len(pr.AssignedReviewers))
 	for _, user := range pr.AssignedReviewers {
-		usersID = append(usersID, user.ID)
+		usersID = append(usersID, user)
 	}
 
 	i := slices.Index(usersID, userID)

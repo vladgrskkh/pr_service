@@ -87,7 +87,7 @@ func (r *PullRequestRepo) UpdateStatus(pr *domain.PR) error {
 	return nil
 }
 
-func (r *PullRequestRepo) GetAllForUser(userID int64) ([]*domain.PR, error) {
+func (r *PullRequestRepo) GetAllForUser(userID string) ([]*domain.PR, error) {
 	query := `
 		SELECT id, name, author_id, status, assigned_reviewers
 		FROM pull_requests
@@ -130,7 +130,7 @@ func (r *PullRequestRepo) GetAllForUser(userID int64) ([]*domain.PR, error) {
 	return prs, nil
 }
 
-func (r *PullRequestRepo) GetByID(id int64) (*domain.PR, error) {
+func (r *PullRequestRepo) GetByID(id string) (*domain.PR, error) {
 	query := `
 		SELECT id, name, author_id, status, assigned_reviewers
 		FROM pull_requests
