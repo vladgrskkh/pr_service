@@ -68,3 +68,17 @@ func (s *PullReqService) GetTeam(name string) (*domain.Team, error) {
 
 	return team, nil
 }
+
+func (s *PullReqService) MergePullReq(id int64) (*domain.PR, error) {
+	pr := &domain.PR{
+		ID:     id,
+		Status: "merged",
+	}
+
+	err := s.pullReqsRepo.UpdateStatus(pr)
+	if err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}

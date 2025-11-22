@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/config"
 	"github.com/vladgrskkh/pr_service/internal/handlers/healthcheck"
+	"github.com/vladgrskkh/pr_service/internal/handlers/pr"
+	"github.com/vladgrskkh/pr_service/internal/handlers/team"
 	"github.com/vladgrskkh/pr_service/internal/handlers/users"
 	"github.com/vladgrskkh/pr_service/internal/repository"
 	"github.com/vladgrskkh/pr_service/internal/service"
@@ -114,6 +116,11 @@ func (app *Application) Routes() http.Handler {
 
 	r.Get("/users/{userID}/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))
 	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService))
+
+	r.Get("/team/{teamName}", team.NewGetTeamHandler(app.Logger, app.PullReqService))
+	r.Post("/team/add", team.NewPostTeamHandler(app.Logger, app.PullReqService))
+
+	r.Post("/pullRequest/merge", pr.NewPostMergeHandler(app.Logger, app.PullReqService))
 
 	return r
 }

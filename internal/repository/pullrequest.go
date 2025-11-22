@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 )
@@ -70,7 +72,12 @@ func (r *PullRequestRepo) UpdateStatus(pr *domain.PR) error {
 
 	err := r.DB.QueryRow(ctx, query, pr.Status, pr.ID).Scan(&pr.CreatedAt, &pr.MergedAt)
 	if err != nil {
-		return err
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return ErrRecordNotFound
+		default:
+			return err
+		}
 	}
 
 	return nil
