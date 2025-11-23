@@ -7,7 +7,68 @@ Cтек:
 - PostgreSQL 18 
 - Docker / docker-compose для контейнирезации и развертывания
 - Prometheus для сбора метрик
-- vegeta для нагрузочного тестирования
+- Vegeta для нагрузочного тестирования
+
+## Поднятие серивиса
+
+Склонируйте репозиторий в удобную вам дирикторию.
+```bash
+git clone https://github.com/vladgrskkh/pr_service .
+```
+
+Для запуска сервиса необходим docker. (https://docs.docker.com/engine/install/)
+
+Перед запуском необходимо настроить переменные окружения .env и .env_db
+
+.env
+
+```env
+DB_DSN='postgres://prs_user:pa55word@db/prs?sslmode=disable'
+DB_DSN_LOCAL='postgres://prs_user:pa55word@localhost/prs?sslmode=disable'
+```
+
+.env_db
+
+```env
+POSTGRES_USER='prs_user'
+POSTGRES_PASSWORD='pa55word'
+POSTGRES_DB='prs'
+```
+
+Запуск контейнеров
+
+```bash
+make run/docker-compose/up
+```
+
+## Makefile
+
+Чтобы посмотреть все Makefile rules
+```bash
+make help
+```
+
+Примерный аутпут:
+
+Usage:
+  help                        print this help message
+  run/api                     run the API application
+  db/psql                     connect to the database using psql
+  db/migrations/new name=$1   create a new database migration
+  db/migrations/up            apply all up database migrations
+  run/docker/api              run the docker image
+  run/docker-compose/up       run the docker-compose(docker-compose.yml) stack in detached mode
+  stop/docker-compose/down    stop the docker-compose(docker-compose.yml) stack
+  audit                       tidy and vendor dependencies and format, vet and test all code
+  vendor                      tidy and vendor dependencies
+  build/api                   build the cmd/api application
+  build/docker                build the docker image
+  build-and-push/docker       build the docker image and push it to docker hub
+
+Чтобы посмотреть все Makefile rules
+```bash
+make help
+```
 
 ---
 
@@ -62,11 +123,8 @@ Cтек:
 ├── load - dir с инструментами и результатами load testring
 │   ├── attack-30.bin
 │   ├── attack-30.json
-│   ├── attack-5.bin
 │   ├── docker-compose.test.yml
 │   ├── Makefile
-│   ├── results.html
-│   ├── results30.html
 │   ├── synt.sql
 │   ├── target.list
 │   ├── userSetIsActive.json
@@ -138,16 +196,18 @@ System:
 
 Дополнительная часть:
 
-- Проведено нагрузочное тестирование (vegeta, пробивал два endopint team/get и users/setIsActive). Отчёт в приложен в папке load(result30.html, attack-30.json).
+- Проведено нагрузочное тестирование (vegeta, пробивал два endopint team/get и users/setIsActive). Отчёт в приложен в папке load(attack-30.json).
 - Описана конфигурация линтера для golangci-lint
 - Реализован endpoint users/massDeactivate, он деактивирует заданных пользователей одной команды и переназначает открытые pr на активных участников команды.
 
 ---
 
 ## Вопросы/проблемы и принятые решения
-- Изначально возник вопрос такого типа: а может ли одни user состоять в нескольких командах. В тз ничего про это сказано не было, поэтому принял решение, что не может, user 
+- Изначально возник вопрос такого типа: а может ли один user состоять в нескольких командах. В тз ничего про это сказано не было, поэтому принял решение, что не может, user 
 привязан к одной команде.
-- Для упрощение задачи самому себе сделал так, что в table pull_requests хранится []text ревьюверов, те без отдельно таблицы. Так как ревьеверов максимум 2, думаю, что сильно на
+- Для упрощение задачи самому себе сделал так, что в table pull_requests хранится []text ревьюверов, те без отдельной таблицы. Так как ревьеверов максимум 2, думаю, что сильно на
 производительность это не повлияет.
 - По endpoint массовой деактивации было непонятно условие, всех ли пользователей мы деактивируем в команде и если всех, тогда смысла переназначать pr нет. Было принято решение
 деактивировать часть пользователей и после перераспределять pr. 
+- В документации иногда непонятно почему возвращаются те или иные коды ошибок, 500 вообще не предусмотрена. Принял решение добавить 500, а остальное не трогать.
+- Не успел покрыть код unit тестами, документация тоже оставляет желать лучшего.

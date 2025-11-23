@@ -18,7 +18,6 @@ var (
 	ErrNoCandidate     = errors.New("no active replacement candidate in team")
 	ErrMergedPRChange  = errors.New("cannot reassign on merged PR")
 	ErrNoActiveUsers   = errors.New("no active users for team")
-	ErrNoOpenPR        = errors.New("no open PRs for team")
 	ErrNoPRsAssigned   = errors.New("no PR assigned to user")
 )
 
@@ -83,19 +82,15 @@ func (s *PullReqService) CreateTeam(name string, members []*domain.User) (*domai
 	}
 
 	err := s.trManager.Do(ctx, func(ctx context.Context) error {
-		s.logger.Info("inside transaction")
 		if err := s.teamsRepo.Insert(ctx, team); err != nil {
-			s.logger.Info("error inserting team")
 			return err
 		}
 
-		s.logger.Info("start create users")
 		for _, member := range members {
 			member.TeamName = team.Name
 
 			err := s.usersRepo.CreateUser(ctx, member)
 			if err != nil {
-				s.logger.Info("error creating user")
 				return err
 			}
 		}
@@ -114,17 +109,13 @@ func (s *PullReqService) GetTeam(name string) (*domain.Team, []string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	s.logger.Info("inside getTeam")
-
 	team, err := s.teamsRepo.Get(ctx, name)
 	if err != nil {
-		s.logger.Info("team get error")
 		return nil, nil, err
 	}
 
 	users, err := s.usersRepo.GetAllForTeam(ctx, team.Name)
 	if err != nil {
-		s.logger.Info("get all for team error")
 		return nil, nil, err
 	}
 
@@ -165,7 +156,6 @@ func (s *PullReqService) CreatePullReq(id, name, authorID string) (*domain.PR, e
 
 	reviewers, err := s.assigneReviewers(ctx, authorID)
 	if err != nil {
-		s.logger.Info("error assigne reviewers")
 		return nil, err
 	}
 	pr := &domain.PR{
@@ -178,7 +168,6 @@ func (s *PullReqService) CreatePullReq(id, name, authorID string) (*domain.PR, e
 
 	err = s.pullReqsRepo.Insert(ctx, pr)
 	if err != nil {
-		s.logger.Info("error inserting pr")
 		return nil, err
 	}
 

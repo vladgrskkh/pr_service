@@ -18,6 +18,9 @@ github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
+# github.com/davecgh/go-spew v1.1.1
+## explicit
+github.com/davecgh/go-spew/spew
 # github.com/go-chi/chi/v5 v5.2.3
 ## explicit; go 1.20
 github.com/go-chi/chi/v5
@@ -50,6 +53,9 @@ github.com/joho/godotenv
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
+# github.com/pmezard/go-difflib v1.0.0
+## explicit
+github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_golang v1.23.2
 ## explicit; go 1.23.0
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil
@@ -71,6 +77,14 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/stretchr/objx v0.5.2
+## explicit; go 1.20
+github.com/stretchr/objx
+# github.com/stretchr/testify v1.11.1
+## explicit; go 1.17
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
+github.com/stretchr/testify/mock
 # go.uber.org/atomic v1.7.0
 ## explicit; go 1.13
 go.uber.org/atomic
@@ -136,3 +150,6 @@ google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/known/timestamppb
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
