@@ -138,3 +138,24 @@ func (r *UsersRepo) GetAllForTeam(ctx context.Context, teamName string) ([]*doma
 	return members, nil
 
 }
+
+func (r *UsersRepo) UpdateDeactivateForTeam(ctx context.Context, teamName string, users []string) error {
+	query := `
+		UPDATE users
+		SET is_active = false
+		WHERE team_name = $1 AND id = ANY($2)	
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	commandTag, err := conn.Exec(ctx, query, teamName, users)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return ErrRecordNotFound
+	}
+
+	return nil
+}

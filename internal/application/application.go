@@ -125,6 +125,7 @@ func (app *Application) Routes() http.Handler {
 
 	r.Get("/users/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))         // working
 	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService)) // working
+	r.Post("/users/massDeactivate", users.NewPostMassDeactivate(app.Logger, app.PullReqService))
 
 	r.Get("/team/get", team.NewGetTeamHandler(app.Logger, app.PullReqService))   // working
 	r.Post("/team/add", team.NewPostTeamHandler(app.Logger, app.PullReqService)) // working

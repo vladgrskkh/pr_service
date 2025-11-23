@@ -266,3 +266,39 @@ func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, erro
 
 	return pr, nil
 }
+
+func (s *PullReqService) MassDeactiveUsers(teamName string, users []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := s.trManager.Do(ctx, func(ctx context.Context) error {
+		err := s.usersRepo.UpdateDeactivateForTeam(ctx, teamName, users)
+		if err != nil {
+			return err
+		}
+
+		changedUsers, err := s.usersRepo.GetAllForTeam(ctx, teamName)
+		if err != nil {
+			return err
+		}
+
+		activeUsers := make([]string, 0, len(changedUsers))
+		for _, user := range changedUsers {
+			if user.IsActive {
+				activeUsers = append(activeUsers, user.ID)
+			}
+		}
+
+		err = s.pullReqsRepo.UpdateReviewersForTeam(ctx, teamName, activeUsers)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

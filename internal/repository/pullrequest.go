@@ -160,3 +160,33 @@ func (r *PullRequestRepo) GetByID(ctx context.Context, id string) (*domain.PR, e
 
 	return &pr, nil
 }
+
+func (r *PullRequestRepo) UpdateReviewersForTeam(ctx context.Context, teamName string, reviewers []string) error {
+	query := `
+		UPDATE pull_requests pr
+		SET assigned_reviewers = (
+    		SELECT ARRAY(
+        		SELECT id
+       			FROM unnest($1::text[]) AS id
+        		WHERE id <> pr.author_id
+				ORDER BY random()
+				LIMIT 2
+			)
+		)
+		FROM users u
+		WHERE pr.author_id = u.id AND u.team_name = $2 AND pr.status = 'OPEN'
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	commandTag, err := conn.Exec(ctx, query, reviewers, teamName)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return ErrRecordNotFound
+	}
+
+	return nil
+}

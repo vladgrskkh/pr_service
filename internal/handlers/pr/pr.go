@@ -130,3 +130,34 @@ func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http
 		}
 	}
 }
+
+type MassDeactivater interface {
+	MassDeactiveUsers(teamName string, users []string) error
+}
+
+func NewPostMassDeactivate(logger *slog.Logger, service MassDeactivater) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			TeamName string   `json:"team_name"`
+			Users    []string `json:"users"`
+		}
+
+		err := json.Read(w, r, &input)
+		if err != nil {
+			apierrors.BadRequestResponse(logger, w, r, err)
+			return
+		}
+
+		err = service.MassDeactiveUsers(input.TeamName, input.Users)
+		if err != nil {
+			// placeholder
+			apierrors.ServerErrorResponse(logger, w, r, err)
+			return
+		}
+
+		err = json.Write(w, http.StatusOK, json.Envelope{"message": "success"}, nil)
+		if err != nil {
+			apierrors.ServerErrorResponse(logger, w, r, err)
+		}
+	}
+}
