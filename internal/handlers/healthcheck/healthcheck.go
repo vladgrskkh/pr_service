@@ -11,7 +11,7 @@ import (
 func New(logger *slog.Logger, env, version string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data := json.Envelope{
-			"status":  "avaliable",
+			"status":  "available",
 			"env":     env,
 			"version": version,
 		}
