@@ -17,6 +17,8 @@ var (
 	ErrUserNotAssigned = errors.New("reviwer is not assigned to this PR")
 	ErrNoCandidate     = errors.New("no active replacement candidate in team")
 	ErrMergedPRChange  = errors.New("cannot reassign on merged PR")
+	ErrNoActiveUsers   = errors.New("no active users for team")
+	ErrNoOpenPR        = errors.New("no open PRs for team")
 )
 
 type PullReqService struct {
@@ -279,7 +281,12 @@ func (s *PullReqService) MassDeactiveUsers(teamName string, users []string) erro
 
 		changedUsers, err := s.usersRepo.GetAllForTeam(ctx, teamName)
 		if err != nil {
-			return err
+			switch {
+			case errors.Is(err, repository.ErrRecordNotFound):
+				return ErrNoActiveUsers
+			default:
+				return err
+			}
 		}
 
 		activeUsers := make([]string, 0, len(changedUsers))
@@ -291,7 +298,12 @@ func (s *PullReqService) MassDeactiveUsers(teamName string, users []string) erro
 
 		err = s.pullReqsRepo.UpdateReviewersForTeam(ctx, teamName, activeUsers)
 		if err != nil {
-			return err
+			switch {
+			case errors.Is(err, repository.ErrRecordNotFound):
+				return ErrNoOpenPR
+			default:
+				return err
+			}
 		}
 
 		return nil

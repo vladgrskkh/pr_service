@@ -8,6 +8,7 @@ import (
 	"github.com/vladgrskkh/pr_service/internal/apierrors"
 	"github.com/vladgrskkh/pr_service/internal/domain"
 	"github.com/vladgrskkh/pr_service/internal/repository"
+	s "github.com/vladgrskkh/pr_service/internal/service"
 	"github.com/vladgrskkh/pr_service/pkg/helpers/json"
 )
 
@@ -89,8 +90,17 @@ func NewPostMassDeactivate(logger *slog.Logger, service MassDeactivater) http.Ha
 
 		err = service.MassDeactiveUsers(input.TeamName, input.Users)
 		if err != nil {
-			// placeholder
-			apierrors.ServerErrorResponse(logger, w, r, err)
+			switch {
+			case errors.Is(err, repository.ErrRecordNotFound):
+				apierrors.NotFoundResponse(logger, w, r, err)
+			case errors.Is(err, s.ErrNoActiveUsers):
+				apierrors.NotFoundResponse(logger, w, r, err)
+			case errors.Is(err, s.ErrNoOpenPR):
+				apierrors.NotFoundResponse(logger, w, r, err)
+			default:
+				apierrors.ServerErrorResponse(logger, w, r, err)
+			}
+
 			return
 		}
 
