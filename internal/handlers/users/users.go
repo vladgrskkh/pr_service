@@ -33,9 +33,8 @@ func NewPostSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRecordNotFound):
-				apierrors.NotFoundResponse(logger, w, r, err)
+				apierrors.NotFoundResponse(logger, w, r)
 			default:
-				logger.Info("inside db error internal")
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
 
@@ -44,7 +43,6 @@ func NewPostSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http
 
 		err = json.Write(w, http.StatusOK, json.Envelope{"user": user}, nil)
 		if err != nil {
-			logger.Info("inside json write error internal")
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
 	}
@@ -60,7 +58,13 @@ func NewGetReviewsHandler(logger *slog.Logger, service ReviewsGetter) http.Handl
 
 		prs, err := service.GetReviewByUser(userID)
 		if err != nil {
-			apierrors.ServerErrorResponse(logger, w, r, err)
+			switch {
+			case errors.Is(err, s.ErrNoPRsAssigned):
+				apierrors.NotFoundResponse(logger, w, r)
+			default:
+				apierrors.ServerErrorResponse(logger, w, r, err)
+			}
+
 			return
 		}
 
@@ -90,13 +94,12 @@ func NewPostMassDeactivate(logger *slog.Logger, service MassDeactivater) http.Ha
 
 		err = service.MassDeactiveUsers(input.TeamName, input.Users)
 		if err != nil {
+			// poor error handling here
 			switch {
 			case errors.Is(err, repository.ErrRecordNotFound):
-				apierrors.NotFoundResponse(logger, w, r, err)
+				apierrors.NotFoundResponse(logger, w, r)
 			case errors.Is(err, s.ErrNoActiveUsers):
-				apierrors.NotFoundResponse(logger, w, r, err)
-			case errors.Is(err, s.ErrNoOpenPR):
-				apierrors.NotFoundResponse(logger, w, r, err)
+				apierrors.NoCandidateResponse(logger, w, r)
 			default:
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
@@ -104,7 +107,7 @@ func NewPostMassDeactivate(logger *slog.Logger, service MassDeactivater) http.Ha
 			return
 		}
 
-		err = json.Write(w, http.StatusOK, json.Envelope{"message": "success"}, nil)
+		err = json.Write(w, http.StatusOK, json.Envelope{"message": "success deactivated users", "users": input.Users}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}

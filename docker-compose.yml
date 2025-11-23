@@ -1,6 +1,8 @@
 services:
   api:
-    image: vladgrskkh/pr-service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file:
       - .env
     restart: always

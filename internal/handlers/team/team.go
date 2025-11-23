@@ -31,10 +31,11 @@ func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFu
 		team, err := service.CreateTeam(input.Name, input.Members)
 		if err != nil {
 			switch {
-			case errors.Is(err, repository.ErrDuplicateTeamName) || errors.Is(err, repository.ErrDuplicateUser):
-				apierrors.BadRequestResponse(logger, w, r, err)
+			case errors.Is(err, repository.ErrDuplicateTeamName):
+				apierrors.TeamExistsResponse(logger, w, r)
+			case errors.Is(err, repository.ErrDuplicateUser):
+				apierrors.UserExistsResponse(logger, w, r)
 			default:
-				logger.Info("inside db error internal")
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
 
@@ -43,7 +44,6 @@ func NewPostTeamHandler(logger *slog.Logger, service TeamCreater) http.HandlerFu
 
 		err = json.Write(w, http.StatusCreated, json.Envelope{"team": team.Name, "members": input.Members}, nil)
 		if err != nil {
-			logger.Info("inside json write error internal")
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
 	}
@@ -61,9 +61,8 @@ func NewGetTeamHandler(logger *slog.Logger, service TeamGetter) http.HandlerFunc
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRecordNotFound):
-				apierrors.NotFoundResponse(logger, w, r, err)
+				apierrors.NotFoundResponse(logger, w, r)
 			default:
-				logger.Info("inside db error internal")
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
 
@@ -72,7 +71,6 @@ func NewGetTeamHandler(logger *slog.Logger, service TeamGetter) http.HandlerFunc
 
 		err = json.Write(w, http.StatusOK, json.Envelope{"team_name": team.Name, "members": members}, nil)
 		if err != nil {
-			logger.Info("inside json write error internal")
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
 	}

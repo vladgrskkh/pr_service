@@ -19,6 +19,7 @@ var (
 	ErrMergedPRChange  = errors.New("cannot reassign on merged PR")
 	ErrNoActiveUsers   = errors.New("no active users for team")
 	ErrNoOpenPR        = errors.New("no open PRs for team")
+	ErrNoPRsAssigned   = errors.New("no PR assigned to user")
 )
 
 type PullReqService struct {
@@ -64,6 +65,10 @@ func (s *PullReqService) GetReviewByUser(id string) ([]*domain.PR, error) {
 	prs, err := s.pullReqsRepo.GetAllForUser(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if prs == nil {
+		return nil, ErrNoPRsAssigned
 	}
 
 	return prs, nil
@@ -300,7 +305,7 @@ func (s *PullReqService) MassDeactiveUsers(teamName string, users []string) erro
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRecordNotFound):
-				return ErrNoOpenPR
+				return nil
 			default:
 				return err
 			}

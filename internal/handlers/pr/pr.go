@@ -32,7 +32,7 @@ func NewPostMergeHandler(logger *slog.Logger, service PRMerger) http.HandlerFunc
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRecordNotFound):
-				apierrors.NotFoundResponse(logger, w, r, err)
+				apierrors.NotFoundResponse(logger, w, r)
 			default:
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
@@ -69,11 +69,9 @@ func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.Han
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrDuplicatePullReqID):
-				// change to 409
-				apierrors.BadRequestResponse(logger, w, r, err)
-			// not found team or author(need to change message)
+				apierrors.PullReqExistsResponse(logger, w, r)
 			case errors.Is(err, repository.ErrRecordNotFound):
-				apierrors.NotFoundResponse(logger, w, r, err)
+				apierrors.NotFoundResponse(logger, w, r)
 			default:
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
@@ -107,16 +105,15 @@ func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http
 
 		pr, err := service.ReassignReviewer(input.PullReqID, input.OldUserID)
 		if err != nil {
-			// think about how i can make it more clear
 			switch {
 			case errors.Is(err, s.ErrMergedPRChange):
-				apierrors.EditConflictResponse(logger, w, r, err)
+				apierrors.PullReqMergedResponse(logger, w, r)
 			case errors.Is(err, s.ErrUserNotAssigned):
-				apierrors.EditConflictResponse(logger, w, r, err)
+				apierrors.UserNotAssignedResponse(logger, w, r)
 			case errors.Is(err, s.ErrNoCandidate):
-				apierrors.EditConflictResponse(logger, w, r, err)
+				apierrors.NoCandidateResponse(logger, w, r)
 			case errors.Is(err, repository.ErrRecordNotFound):
-				apierrors.NotFoundResponse(logger, w, r, err)
+				apierrors.NotFoundResponse(logger, w, r)
 			default:
 				apierrors.ServerErrorResponse(logger, w, r, err)
 			}
@@ -125,37 +122,6 @@ func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http
 		}
 
 		err = json.Write(w, http.StatusOK, json.Envelope{"pr": pr, "replaced_by": input.OldUserID}, nil)
-		if err != nil {
-			apierrors.ServerErrorResponse(logger, w, r, err)
-		}
-	}
-}
-
-type MassDeactivater interface {
-	MassDeactiveUsers(teamName string, users []string) error
-}
-
-func NewPostMassDeactivate(logger *slog.Logger, service MassDeactivater) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var input struct {
-			TeamName string   `json:"team_name"`
-			Users    []string `json:"users"`
-		}
-
-		err := json.Read(w, r, &input)
-		if err != nil {
-			apierrors.BadRequestResponse(logger, w, r, err)
-			return
-		}
-
-		err = service.MassDeactiveUsers(input.TeamName, input.Users)
-		if err != nil {
-			// placeholder
-			apierrors.ServerErrorResponse(logger, w, r, err)
-			return
-		}
-
-		err = json.Write(w, http.StatusOK, json.Envelope{"message": "success"}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}
