@@ -101,13 +101,16 @@ Users:
 - `GET  /users/getReview` — получить список PR, где пользователь назначен ревьюером.
 - `POST /users/setIsActive` — активировать/деактивировать конкретного пользователя.
 - `POST /users/massDeactivate` - деактивирует заданных пользователей одной команды и переназначает Pull Requests.
+
 Team:
 - `GET  /team/get` — получить команду со списком участников.
 - `POST /team/add` — создать команду со списком участников.
+
 PullRequest:
 - `POST /pullRequest/create` — создать Pull Request и автоматически назначить до 2 ревьюеров из команды автора.
 - `POST /pullRequest/merge` — сделать Pull Request MERGED.
 - `POST /pullRequest/reassign` — переназначить ревьюера(меняет указанного ревьювера на активного из команды автора).
+
 System:
 - `GET  /health` — healthcheck(status, env, version).
 - `GET  /metrics` — метрики Prometheus.
