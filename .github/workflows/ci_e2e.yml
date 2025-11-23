@@ -1,0 +1,51 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.3"
+
+      - name: Start services
+        run: docker-compose -f docker-compose.yml up --build -d
+
+      - name: Wait for API
+        run: |
+          echo "Waiting for API to become ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/health | grep -q "status"; then
+              echo "API is ready!"
+              break
+            fi
+            echo "Waiting..."
+            sleep 2
+          done
+
+      - name: Run E2E tests
+        run: go test -v ./e2e
+
+      - name: Dump Docker logs on failure
+        if: failure()
+        run: |
+          echo "=== API LOGS ==="
+          docker logs api || true
+          echo "=== DB LOGS ==="
+          docker logs db || true
+          echo "=== MIGRATE LOGS ==="
+          docker logs migrate || true
+
+      - name: Stop services
+        run: docker-compose -f docker-compose.yml down -v

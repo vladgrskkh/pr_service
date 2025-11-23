@@ -50,25 +50,21 @@ make help
 
 Примерный аутпут:
 
-Usage:
-  help                        print this help message
-  run/api                     run the API application
-  db/psql                     connect to the database using psql
-  db/migrations/new name=$1   create a new database migration
-  db/migrations/up            apply all up database migrations
-  run/docker/api              run the docker image
-  run/docker-compose/up       run the docker-compose(docker-compose.yml) stack in detached mode
-  stop/docker-compose/down    stop the docker-compose(docker-compose.yml) stack
-  audit                       tidy and vendor dependencies and format, vet and test all code
-  vendor                      tidy and vendor dependencies
-  build/api                   build the cmd/api application
-  build/docker                build the docker image
-  build-and-push/docker       build the docker image and push it to docker hub
+-Usage:
+-  help                        print this help message
+-  run/api                     run the API application
+-  db/psql                     connect to the database using psql
+-  db/migrations/new name=$1   create a new database migration
+-  db/migrations/up            apply all up database migrations
+-  run/docker/api              run the docker image
+-  run/docker-compose/up       run the docker-compose(docker-compose.yml) stack in detached mode
+-  stop/docker-compose/down    stop the docker-compose(docker-compose.yml) stack
+-  audit                       tidy and vendor dependencies and format, vet and test all code
+-  vendor                      tidy and vendor dependencies
+-  build/api                   build the cmd/api application
+-  build/docker                build the docker image
+-  build-and-push/docker       build the docker image and push it to docker hub
 
-Чтобы посмотреть все Makefile rules
-```bash
-make help
-```
 
 ---
 

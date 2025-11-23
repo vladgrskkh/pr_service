@@ -121,20 +121,20 @@ func (app *Application) Routes() http.Handler {
 	r.Use(middleware.Metrics)
 	r.Use(middleware.RecoverPanic(app.Logger))
 
-	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version)) // working
+	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version))
 
-	r.Get("/users/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))         // working
-	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService)) // working
-	r.Post("/users/massDeactivate", users.NewPostMassDeactivate(app.Logger, app.PullReqService))  // working
+	r.Get("/users/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))
+	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService))
+	r.Post("/users/massDeactivate", users.NewPostMassDeactivate(app.Logger, app.PullReqService))
 
-	r.Get("/team/get", team.NewGetTeamHandler(app.Logger, app.PullReqService))   // working
-	r.Post("/team/add", team.NewPostTeamHandler(app.Logger, app.PullReqService)) // working
+	r.Get("/team/get", team.NewGetTeamHandler(app.Logger, app.PullReqService))
+	r.Post("/team/add", team.NewPostTeamHandler(app.Logger, app.PullReqService))
 
-	r.Post("/pullRequest/merge", pr.NewPostMergeHandler(app.Logger, app.PullReqService))       // working
-	r.Post("/pullRequest/create", pr.NewPostPullReqHandler(app.Logger, app.PullReqService))    // working
-	r.Post("/pullRequest/reassign", pr.NewPostReassignHandler(app.Logger, app.PullReqService)) // working
+	r.Post("/pullRequest/merge", pr.NewPostMergeHandler(app.Logger, app.PullReqService))
+	r.Post("/pullRequest/create", pr.NewPostPullReqHandler(app.Logger, app.PullReqService))
+	r.Post("/pullRequest/reassign", pr.NewPostReassignHandler(app.Logger, app.PullReqService))
 
-	r.Method(http.MethodGet, "/metrics", promhttp.Handler()) // working
+	r.Method(http.MethodGet, "/metrics", promhttp.Handler())
 
 	return r
 }

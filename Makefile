@@ -68,7 +68,7 @@ audit: vendor
 	go vet ./...
 	golangci-lint run --config=.golangci.yml
 	@echo 'Running tests...'
-	go test -race -vet=off ./...
+	go test -race -vet=off -short ./...
  
 ## vendor: tidy and vendor dependencies
 .PHONY: vendor
@@ -102,3 +102,27 @@ build-and-push/docker:
 	docker build --tag vladgrskkh/pr-service .
 	@echo 'Pushing docker image...'
 	docker push vladgrskkh/pr-service:latest
+
+# =========================================================================================== #
+# E2E
+# =========================================================================================== #
+
+API_URL=http://localhost:8080
+
+DC=docker-compose.yml
+
+.PHONY: e2e/up
+e2e/up:
+	docker-compose -f $(DC) up -d --build
+
+.PHONY:
+e2e/test: e2e/test
+	go test -v ./internal/e2e
+
+.PHONY:
+e2e/down: e2e/down
+	docker-compose -f $(DC) down -v
+
+.PHONY: e2e
+e2e: e2e/down e2e/up e2e/migrate e2e/test e2e/down
+	@echo "E2E tests complete successfuly!"
