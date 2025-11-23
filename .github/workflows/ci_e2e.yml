@@ -57,4 +57,4 @@ jobs:
           docker logs migrate || true
 
       - name: Stop services
-        run: docker-compose -f docker-compose.yml down -v
+        run: docker compose -f docker-compose.yml down -v

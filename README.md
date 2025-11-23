@@ -5,11 +5,12 @@ PR Service - это сервис создания и управления Pull R
 Cтек:
 - Go 1.25.3
 - PostgreSQL 18 
-- Docker / docker-compose для контейнирезации и развертывания
+- Docker / docker compose для контейнирезации и развертывания
 - Prometheus для сбора метрик
 - Vegeta для нагрузочного тестирования
+- GitHub Actions для CI
 
-## Поднятие серивиса
+## Поднятие сервиса
 
 Склонируйте репозиторий в удобную вам дирикторию.
 ```bash
@@ -18,7 +19,7 @@ git clone https://github.com/vladgrskkh/pr_service .
 
 Для запуска сервиса необходим docker. (https://docs.docker.com/engine/install/)
 
-Перед запуском необходимо настроить переменные окружения .env и .env_db
+Перед запуском необходимо настроить переменные окружения .env и .env_db.
 
 .env
 
@@ -51,23 +52,23 @@ make help
 Примерный аутпут:
 
 -Usage:
--  help                        print this help message
--  run/api                     run the API application
--  db/psql                     connect to the database using psql
--  db/migrations/new name=$1   create a new database migration
--  db/migrations/up            apply all up database migrations
--  run/docker/api              run the docker image
--  run/docker-compose/up       run the docker-compose(docker-compose.yml) stack in detached mode
--  stop/docker-compose/down    stop the docker-compose(docker-compose.yml) stack
--  audit                       tidy and vendor dependencies and format, vet and test all code
--  vendor                      tidy and vendor dependencies
--  build/api                   build the cmd/api application
--  build/docker                build the docker image
--  build-and-push/docker       build the docker image and push it to docker hub
--  e2e/up                      run the docker-compose(e2e/docker-compose.yml) stack
--  e2e/test                    run the e2e tests
--  e2e/down                    stop the docker-compose(e2e/docker-compose.yml) stack
--  e2e                         run the env and e2e test
+-  help:                        print this help message
+-  run/api:                     run the API application
+-  db/psql:                     connect to the database using psql
+-  db/migrations/new name=$1:   create a new database migration
+-  db/migrations/up:            apply all up database migrations
+-  run/docker/api:              run the docker image
+-  run/docker-compose/up:       run the docker-compose(docker-compose.yml) stack in detached mode
+-  stop/docker-compose/down:   stop the docker-compose(docker-compose.yml) stack
+-  audit:                       tidy and vendor dependencies and format, vet and test all code
+-  vendor:                     tidy and vendor dependencies
+-  build/api:                   build the cmd/api application
+-  build/docker:                build the docker image
+-  build-and-push/docker:       build the docker image and push it to docker hub
+-  e2e/up:                      run the docker-compose(e2e/docker-compose.yml) stack
+-  e2e/test:                    run the e2e tests
+-  e2e/down:                    stop the docker-compose(e2e/docker-compose.yml) stack
+-  e2e:                         run the env and e2e test
 
 
 
@@ -76,7 +77,6 @@ make help
 ## Структура проекта
 
 ```text
-.
 ├── cmd
 │   └── api
 │       └── main.go
@@ -174,7 +174,7 @@ Endpoints:
 Users:
 - `GET  /users/getReview` — получить список PR, где пользователь назначен ревьюером.
 - `POST /users/setIsActive` — активировать/деактивировать конкретного пользователя.
-- `POST /users/massDeactivate` - деактивирует заданных пользователей одной команды и переназначает Pull Requests.
+- `POST /users/massDeactivate` - деактивирует заданных пользователей одной команды и переназначить Pull Requests.
 
 Team:
 - `GET  /team/get` — получить команду со списком участников.
@@ -199,18 +199,18 @@ System:
 
 ## Реализованные требования
 
-Обязательная часть:
+Основная часть:
 
 - Реализован API на Golang в соответствии с документацией openapi.
-- БД выбрана PostgreSQL, все миграции содержатсья в директории ./migrations, все миграции автоматически применяются при поднятии docker-compose.
+- БД выбрана PostgreSQL, все миграции содержатся в директории ./migrations, все миграции автоматически применяются при поднятии docker-compose.
 - Структура проекта по DDD (domain, service, repository, handlers).
 - Метрики собираются при помощи Prometheus (endpoint /metrics).
 - Сервис выполняет все требования по SLI.
-- Используется docker-compose для поднятия контейнеров(pr_service доступен на 8080).
+- Используется docker-compose для поднятия контейнеров(pr_service доступен на порту 8080).
 
 Дополнительная часть:
 
-- Проведено нагрузочное тестирование (vegeta, пробивал два endopint team/get и users/setIsActive). Отчёт в приложен в папке load(attack-30.json).
+- Проведено нагрузочное тестирование (vegeta, пробивал два endopoint team/get и users/setIsActive). Отчёт приложен в папке load(attack-30.json).
 - Описана конфигурация линтера для golangci-lint
 - Реализован endpoint users/massDeactivate, он деактивирует заданных пользователей одной команды и переназначает открытые pr на активных участников команды.
 - Реализован сценарий E2E-тестирования(internal/e2e). В этом сценарии создается команда, после создаются PR'ы, один пользователь деактивируется, после merge всех PR'ов.
