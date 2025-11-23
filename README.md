@@ -64,6 +64,11 @@ make help
 -  build/api                   build the cmd/api application
 -  build/docker                build the docker image
 -  build-and-push/docker       build the docker image and push it to docker hub
+-  e2e/up                      run the docker-compose(e2e/docker-compose.yml) stack
+-  e2e/test                    run the e2e tests
+-  e2e/down                    stop the docker-compose(e2e/docker-compose.yml) stack
+-  e2e                         run the env and e2e test
+
 
 
 ---
@@ -96,14 +101,28 @@ make help
 │   │   ├── pr.go
 │   │   ├── team.go
 │   │   └── user.go
+│   ├── e2e
+│   │   └── e2e_test.go
 │   ├── handlers
 │   │   ├── healthcheck
 │   │   │   └── healthcheck.go
 │   │   ├── pr
+│   │   │   ├── mocks
+│   │   │   │   ├── PRMerger.go
+│   │   │   │   ├── PullReqCreater.go
+│   │   │   │   └── PullReqReassigner.go
 │   │   │   └── pr.go
 │   │   ├── team
+│   │   │   ├── mocks
+│   │   │   │   ├── TeamCreater.go
+│   │   │   │   └── TeamGetter.go
+│   │   │   ├── team_test.go
 │   │   │   └── team.go
 │   │   └── users
+│   │       ├── mocks
+│   │       │   ├── IsActiveSetter.go
+│   │       │   ├── MassDeactivater.go
+│   │       │   └── ReviewsGetter.go
 │   │       └── users.go
 │   ├── middleware
 │   │   ├── metrics.go
@@ -141,6 +160,7 @@ make help
 │   └── helpers
 │       └── json
 │           └── json.go
+├── README.md
 └── vendor
 
 ```
@@ -173,9 +193,7 @@ System:
 
 ## CI
 
-Подключил к проекту Github Actions. При пуше и пул реквесте на ветки main или feat/** запускается пайплайн, который прогоняет все тесты и запускает линтер(golangci-lint).
-
-Не успеваю к дедлайну добавить в пайплайн интеграционные тесты.
+Подключил к проекту Github Actions. При пуше и пул реквесте на ветки main или feat/** запускается пайплайн, который прогоняет все тесты(в том числе e2e) и запускает линтер(golangci-lint).
 
 ---
 
@@ -195,6 +213,7 @@ System:
 - Проведено нагрузочное тестирование (vegeta, пробивал два endopint team/get и users/setIsActive). Отчёт в приложен в папке load(attack-30.json).
 - Описана конфигурация линтера для golangci-lint
 - Реализован endpoint users/massDeactivate, он деактивирует заданных пользователей одной команды и переназначает открытые pr на активных участников команды.
+- Реализован сценарий E2E-тестирования(internal/e2e). В этом сценарии создается команда, после создаются PR'ы, один пользователь деактивируется, после merge всех PR'ов.
 
 ---
 
@@ -205,5 +224,5 @@ System:
 производительность это не повлияет.
 - По endpoint массовой деактивации было непонятно условие, всех ли пользователей мы деактивируем в команде и если всех, тогда смысла переназначать pr нет. Было принято решение
 деактивировать часть пользователей и после перераспределять pr. 
-- В документации иногда непонятно почему возвращаются те или иные коды ошибок, 500 вообще не предусмотрена. Принял решение добавить 500, а остальное не трогать.
-- Не успел покрыть код unit тестами, документация тоже оставляет желать лучшего.
+- В предложенной документации иногда непонятно почему возвращаются те или иные коды ошибок, 500 вообще не предусмотрена. Принял решение добавить 500, а остальное не трогать.
+- Не успел покрыть код unit тестами(и не написал нормальных e2e и intergration), документация тоже оставляет желать лучшего.

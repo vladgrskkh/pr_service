@@ -111,18 +111,22 @@ API_URL=http://localhost:8080
 
 DC=docker-compose.yml
 
+## e2e/up: run the docker-compose(e2e/docker-compose.yml) stack
 .PHONY: e2e/up
 e2e/up:
 	docker-compose -f $(DC) up -d --build
 
-.PHONY:
-e2e/test: e2e/test
+## e2e/test: run the e2e tests
+.PHONY: e2e/test
+e2e/test:
 	go test -v ./internal/e2e
 
-.PHONY:
-e2e/down: e2e/down
+## e2e/down: stop the docker-compose(e2e/docker-compose.yml) stack
+.PHONY: e2e/down
+e2e/down:
 	docker-compose -f $(DC) down -v
 
+## e2e: run the env and e2e test
 .PHONY: e2e
 e2e: e2e/down e2e/up e2e/migrate e2e/test e2e/down
 	@echo "E2E tests complete successfuly!"
