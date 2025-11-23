@@ -1,0 +1,17 @@
+GET http://localhost:8080/team/get?team_name=team_01
+GET http://localhost:8080/team/get?team_name=team_02
+GET http://localhost:8080/team/get?team_name=team_03
+GET http://localhost:8080/team/get?team_name=team_07
+GET http://localhost:8080/team/get?team_name=team_08
+GET http://localhost:8080/team/get?team_name=team_09
+GET http://localhost:8080/team/get?team_name=team_10
+GET http://localhost:8080/team/get?team_name=team_15
+GET http://localhost:8080/team/get?team_name=team_06
+
+POST http://localhost:8080/users/setIsActive
+Content-Type: application/json
+@userSetIsActive.json
+
+POST http://localhost:8080/users/setIsActive
+Content-Type: application/json
+@userSetIsActive1.json
