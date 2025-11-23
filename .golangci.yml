@@ -25,19 +25,3 @@ linters:
 
   disable:
     - funlen     
-
-linters-settings:
-  errcheck:
-    ignore: ["Close", "Write", "Print"]
-  dupl:
-    threshold: 100
-  gosec:
-    exclude:
-      - "G104"
-
-issues:
-  exclude-rules: 
-    - "_test.go"
-
-output:
-  output-format: colored-line-number
