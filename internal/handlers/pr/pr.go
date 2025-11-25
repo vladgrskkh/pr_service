@@ -70,6 +70,8 @@ func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.Han
 			switch {
 			case errors.Is(err, repository.ErrDuplicatePullReqID):
 				apierrors.PullReqExistsResponse(logger, w, r)
+			case errors.Is(err, s.ErrValidatePR):
+				apierrors.BadRequestResponse(logger, w, r, err)
 			case errors.Is(err, repository.ErrRecordNotFound):
 				apierrors.NotFoundResponse(logger, w, r)
 			default:
@@ -87,7 +89,7 @@ func NewPostPullReqHandler(logger *slog.Logger, service PullReqCreater) http.Han
 }
 
 type PullReqReassigner interface {
-	ReassignReviewer(prID, userID string) (*domain.PR, error)
+	ReassignReviewer(prID, userID string) (*domain.PR, string, error)
 }
 
 func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http.HandlerFunc {
@@ -103,7 +105,7 @@ func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http
 			return
 		}
 
-		pr, err := service.ReassignReviewer(input.PullReqID, input.OldUserID)
+		pr, replacement, err := service.ReassignReviewer(input.PullReqID, input.OldUserID)
 		if err != nil {
 			switch {
 			case errors.Is(err, s.ErrMergedPRChange):
@@ -121,7 +123,7 @@ func NewPostReassignHandler(logger *slog.Logger, service PullReqReassigner) http
 			return
 		}
 
-		err = json.Write(w, http.StatusOK, json.Envelope{"pr": pr, "replaced_by": input.OldUserID}, nil)
+		err = json.Write(w, http.StatusOK, json.Envelope{"pr": pr, "replaced_by": replacement}, nil)
 		if err != nil {
 			apierrors.ServerErrorResponse(logger, w, r, err)
 		}

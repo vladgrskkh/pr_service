@@ -173,6 +173,7 @@ Endpoints:
 
 Users:
 - `GET  /users/getReview` — получить список PR, где пользователь назначен ревьюером.
+- `GET  /users/getAuthor` — получить список PR, созданных юзером.
 - `POST /users/setIsActive` — активировать/деактивировать конкретного пользователя.
 - `POST /users/massDeactivate` - деактивирует заданных пользователей одной команды и переназначить Pull Requests.
 
@@ -186,7 +187,7 @@ PullRequest:
 - `POST /pullRequest/reassign` — переназначить ревьюера(меняет указанного ревьювера на активного из команды автора).
 
 System:
-- `GET  /health` — healthcheck(status, env, version).
+- `GET  /healthcheck` — healthcheck(status, env, version).
 - `GET  /metrics` — метрики Prometheus.
 
 ---

@@ -48,6 +48,33 @@ func NewPostSetIsActiveHandler(logger *slog.Logger, service IsActiveSetter) http
 	}
 }
 
+type PRsByAuthorGetter interface {
+	GetPRsByAuthor(id string) ([]*domain.PR, error)
+}
+
+func NewGetPRsByAuthorHandler(logger *slog.Logger, service PRsByAuthorGetter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.URL.Query().Get("user_id")
+
+		prs, err := service.GetPRsByAuthor(userID)
+		if err != nil {
+			switch {
+			case errors.Is(err, s.ErrNoPRsCreated):
+				apierrors.NotFoundResponse(logger, w, r)
+			default:
+				apierrors.ServerErrorResponse(logger, w, r, err)
+			}
+
+			return
+		}
+
+		err = json.Write(w, http.StatusOK, json.Envelope{"user_id": userID, "pull_requests": prs}, nil)
+		if err != nil {
+			apierrors.ServerErrorResponse(logger, w, r, err)
+		}
+	}
+}
+
 type ReviewsGetter interface {
 	GetReviewByUser(id string) ([]*domain.PR, error)
 }

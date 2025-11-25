@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math/rand/v2"
 	"slices"
@@ -19,10 +20,12 @@ var (
 	ErrMergedPRChange  = errors.New("cannot reassign on merged PR")
 	ErrNoActiveUsers   = errors.New("no active users for team")
 	ErrNoPRsAssigned   = errors.New("no PR assigned to user")
+	ErrNoPRsCreated    = errors.New("no open RPs created by user")
+	ErrValidatePR      = errors.New("failed to validate PR")
 )
 
 type PullReqService struct {
-	logger       *slog.Logger // think about why i need this
+	logger       *slog.Logger
 	pullReqsRepo *repository.PullRequestRepo
 	teamsRepo    *repository.TeamRepository
 	usersRepo    *repository.UsersRepo
@@ -61,13 +64,29 @@ func (s *PullReqService) GetReviewByUser(id string) ([]*domain.PR, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	prs, err := s.pullReqsRepo.GetAllForUser(ctx, id)
+	prs, err := s.pullReqsRepo.GetAllForUserReviewer(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	if prs == nil {
 		return nil, ErrNoPRsAssigned
+	}
+
+	return prs, nil
+}
+
+func (s *PullReqService) GetPRsByAuthor(id string) ([]*domain.PR, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	prs, err := s.pullReqsRepo.GetAllForUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if prs == nil {
+		return nil, ErrNoPRsCreated
 	}
 
 	return prs, nil
@@ -154,17 +173,24 @@ func (s *PullReqService) CreatePullReq(id, name, authorID string) (*domain.PR, e
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	pr := &domain.PR{
+		ID:       id,
+		Name:     name,
+		AuthorID: authorID,
+		Status:   "OPEN",
+	}
+
+	err := s.validatePullReq(pr)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrValidatePR, err)
+	}
+
 	reviewers, err := s.assigneReviewers(ctx, authorID)
 	if err != nil {
 		return nil, err
 	}
-	pr := &domain.PR{
-		ID:                id,
-		Name:              name,
-		AuthorID:          authorID,
-		Status:            "OPEN",
-		AssignedReviewers: reviewers,
-	}
+
+	pr.AssignedReviewers = reviewers
 
 	err = s.pullReqsRepo.Insert(ctx, pr)
 	if err != nil {
@@ -172,6 +198,22 @@ func (s *PullReqService) CreatePullReq(id, name, authorID string) (*domain.PR, e
 	}
 
 	return pr, nil
+}
+
+func (s *PullReqService) validatePullReq(pr *domain.PR) error {
+	if pr.Name == "" {
+		return fmt.Errorf("pull request name must not be empty")
+	}
+
+	if pr.AuthorID == "" {
+		return fmt.Errorf("author name should not be empty")
+	}
+
+	if pr.ID == "" {
+		return fmt.Errorf("pull request id should not be empty")
+	}
+
+	return nil
 }
 
 // i need to query all active users in the same team as author and pick 2
@@ -206,37 +248,37 @@ func (s *PullReqService) assigneReviewers(ctx context.Context, authorID string) 
 	return filtered[:2], nil
 }
 
-func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, error) {
+func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	pr, err := s.pullReqsRepo.GetByID(ctx, prID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if pr.Status != "OPEN" {
-		return nil, ErrMergedPRChange
+		return nil, "", ErrMergedPRChange
 	}
 
 	if pr.AuthorID == userID {
-		return nil, ErrUserNotAssigned
+		return nil, "", ErrUserNotAssigned
 	}
 
 	usersID := append([]string{}, pr.AssignedReviewers...)
 
 	i := slices.Index(usersID, userID)
 	if i == -1 {
-		return nil, ErrUserNotAssigned
+		return nil, "", ErrUserNotAssigned
 	}
 
 	possibleReviewers, err := s.assigneReviewers(ctx, pr.AuthorID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if possibleReviewers == nil {
-		return nil, ErrNoCandidate
+		return nil, "", ErrNoCandidate
 	}
 
 	filtered := make([]string, 0, len(possibleReviewers))
@@ -247,20 +289,21 @@ func (s *PullReqService) ReassignReviewer(prID, userID string) (*domain.PR, erro
 	}
 
 	if len(filtered) == 0 {
-		return nil, ErrNoCandidate
+		return nil, "", ErrNoCandidate
 	}
 
 	rand.Shuffle(len(filtered), func(i, j int) {
 		filtered[i], filtered[j] = filtered[j], filtered[i]
 	})
+	replacement := filtered[0]
 	pr.AssignedReviewers[i] = filtered[0]
 
 	err = s.pullReqsRepo.UpdateReviewers(ctx, pr)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return pr, nil
+	return pr, replacement, nil
 }
 
 func (s *PullReqService) MassDeactiveUsers(teamName string, users []string) error {

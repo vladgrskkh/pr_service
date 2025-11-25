@@ -190,3 +190,45 @@ func (r *PullRequestRepo) UpdateReviewersForTeam(ctx context.Context, teamName s
 
 	return nil
 }
+
+func (r *PullRequestRepo) GetAllForUserReviewer(ctx context.Context, userID string) ([]*domain.PR, error) {
+	query := `
+		SELECT id, name, author_id, status, assigned_reviewers
+		FROM pull_requests
+		WHERE pull_requests.assigned_reviewers @> ARRAY[$1] AND status = 'OPEN'
+	`
+
+	conn := r.getter.DefaultTrOrDB(ctx, r.db)
+
+	rows, err := conn.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var prs []*domain.PR
+
+	for rows.Next() {
+		var pr domain.PR
+
+		err := rows.Scan(
+			&pr.ID,
+			&pr.Name,
+			&pr.AuthorID,
+			&pr.Status,
+			&pr.AssignedReviewers,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		prs = append(prs, &pr)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return prs, nil
+}
