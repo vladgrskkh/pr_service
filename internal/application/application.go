@@ -123,6 +123,7 @@ func (app *Application) Routes() http.Handler {
 
 	r.Get("/healthcheck", healthcheck.New(app.Logger, app.Cfg.Env, app.Cfg.Version))
 
+	r.Get("/users/getAuthor", users.NewGetPRsByAuthorHandler(app.Logger, app.PullReqService))
 	r.Get("/users/getReview", users.NewGetReviewsHandler(app.Logger, app.PullReqService))
 	r.Post("/users/setIsActive", users.NewPostSetIsActiveHandler(app.Logger, app.PullReqService))
 	r.Post("/users/massDeactivate", users.NewPostMassDeactivate(app.Logger, app.PullReqService))
